@@ -25,9 +25,6 @@ interface HistoryState {
 }
 
 const baseWidth = 794; // A4 width px
-const baseHeight = 1045; // A4 height px (accounting for Puppeteer's default margins)
-const pagePadding = 0; // Padding inside each page
-const pageGap = 24; // Gap between pages
 
 export const ResumePreview = ({
   data,
@@ -36,34 +33,26 @@ export const ResumePreview = ({
   editableContent = "",
   setEditableContent,
   onSave,
-  zoom: zoomProp,
-  setZoom: setZoomProp,
-  pageCount: pageCountProp,
-  setPageCount: setPageCountProp,
   showZoomControls = true,
   containerClassName = "",
   secureExportRef,
   rightControls,
 }: ResumePreviewProps) => {
-  const [zoom, setZoom] = useState(zoomProp ?? 1);
+  const [zoom, setZoom] = useState(1);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [pageCount, setPageCount] = useState(pageCountProp ?? 1);
   const [history, setHistory] = useState<HistoryState[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const editableRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const updateTimeoutRef = useRef<NodeJS.Timeout>();
   const historyTimeoutRef = useRef<NodeJS.Timeout>();
   const isUndoRedoRef = useRef(false);
 
-  // Local state for uncontrolled editing
   const [localContent, setLocalContent] = useState(editableContent || '<div><br></div>');
 
-  // Add mobile detection
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -71,20 +60,6 @@ export const ResumePreview = ({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  // Sync zoom/pageCount with props if provided
-  useEffect(() => {
-    if (typeof zoomProp === "number") setZoom(zoomProp);
-  }, [zoomProp]);
-  useEffect(() => {
-    if (typeof setZoomProp === "function") setZoomProp(zoom);
-  }, [zoom, setZoomProp]);
-  useEffect(() => {
-    if (typeof pageCountProp === "number") setPageCount(pageCountProp);
-  }, [pageCountProp]);
-  useEffect(() => {
-    if (typeof setPageCountProp === "function") setPageCountProp(pageCount);
-  }, [pageCount, setPageCountProp]);
 
   // Initialize history when editing starts
   useEffect(() => {
@@ -101,27 +76,21 @@ export const ResumePreview = ({
   // Save cursor position
   const saveCursorPosition = useCallback(() => {
     if (!editableRef.current) return null;
-    
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return null;
-    
     const range = selection.getRangeAt(0);
-    
     const startMarker = document.createElement('span');
     const endMarker = document.createElement('span');
     startMarker.id = 'cursor-start-marker';
     endMarker.id = 'cursor-end-marker';
     startMarker.style.display = 'none';
     endMarker.style.display = 'none';
-    
     try {
       const clonedRange = range.cloneRange();
       clonedRange.collapse(false);
       clonedRange.insertNode(endMarker);
-      
       range.collapse(true);
       range.insertNode(startMarker);
-      
       return { startMarker, endMarker };
     } catch (e) {
       startMarker.remove();
@@ -133,21 +102,17 @@ export const ResumePreview = ({
   // Restore cursor position
   const restoreCursorPosition = useCallback((markers: { startMarker: HTMLElement; endMarker: HTMLElement } | null) => {
     if (!markers || !editableRef.current) return;
-    
     try {
       const { startMarker, endMarker } = markers;
       const selection = window.getSelection();
       if (!selection) return;
-      
       if (startMarker.parentNode && endMarker.parentNode) {
         const range = document.createRange();
         range.setStartAfter(startMarker);
         range.setEndBefore(endMarker);
-        
         selection.removeAllRanges();
         selection.addRange(range);
       }
-      
       startMarker.remove();
       endMarker.remove();
     } catch (e) {
@@ -164,12 +129,8 @@ export const ResumePreview = ({
   const cleanContent = useCallback((html: string) => {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-    
     const svgElements = tempDiv.querySelectorAll('svg');
-    svgElements.forEach(svg => {
-      svg.setAttribute('data-preserve', 'true');
-    });
-    
+    svgElements.forEach(svg => svg.setAttribute('data-preserve', 'true'));
     const emptyElements = tempDiv.querySelectorAll('*:not([data-preserve])');
     emptyElements.forEach(el => {
       if (
@@ -179,7 +140,6 @@ export const ResumePreview = ({
         el.remove();
       }
     });
-    
     const cleanEmptyElements = (element: Element) => {
       Array.from(element.children).forEach(child => {
         if (child.hasAttribute('data-preserve')) return;
@@ -193,24 +153,15 @@ export const ResumePreview = ({
         }
       });
     };
-    
     cleanEmptyElements(tempDiv);
-    
-    svgElements.forEach(svg => {
-      svg.removeAttribute('data-preserve');
-    });
-    
+    svgElements.forEach(svg => svg.removeAttribute('data-preserve'));
     return tempDiv.innerHTML;
   }, []);
 
   // Add to history
   const addToHistory = useCallback((content: string) => {
     if (isUndoRedoRef.current) return;
-    
-    if (historyTimeoutRef.current) {
-      clearTimeout(historyTimeoutRef.current);
-    }
-    
+    if (historyTimeoutRef.current) clearTimeout(historyTimeoutRef.current);
     historyTimeoutRef.current = setTimeout(() => {
       setHistory(prev => {
         const newHistory = prev.slice(0, historyIndex + 1);
@@ -219,186 +170,53 @@ export const ResumePreview = ({
           timestamp: Date.now()
         };
         newHistory.push(newState);
-        
-        if (newHistory.length > 50) {
-          return newHistory.slice(-50);
-        }
+        if (newHistory.length > 50) return newHistory.slice(-50);
         return newHistory;
       });
       setHistoryIndex(prev => Math.min(prev + 1, 49));
     }, 500);
   }, [historyIndex, cleanContent]);
 
-  // Enhanced page calculation with accurate measurement
-  const calculateRequiredPages = useCallback(() => {
-    if (!editableRef.current && !data) return;
-
-    const calculateWithIframe = async (content: string) => {
-      // Use the same method as PDF export for consistent page calculation
-      const A4_HEIGHT_PX = 1045; // Account for Puppeteer's default margins
-      
-      const htmlString = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: system-ui, -apple-system, sans-serif; 
-              font-size: 14px; 
-              line-height: 1.5; 
-              color: #000; 
-              width: 794px;
-              margin: 0;
-              padding: 20px;
-              background-color: white;
-              overflow: visible;
-            }
-            .page-break { page-break-before: always; }
-          </style>
-        </head>
-        <body>${content}</body>
-        </html>
-      `;
-
-      return new Promise<number>((resolve, reject) => {
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'absolute';
-        iframe.style.left = '-9999px';
-        iframe.style.top = '0';
-        iframe.style.width = '794px'; // A4 width
-        iframe.style.height = 'auto';
-        iframe.style.visibility = 'hidden';
-        document.body.appendChild(iframe);
-        
-        iframe.onload = () => {
-          try {
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-            if (!iframeDoc) throw new Error("Failed to access iframe document");
-            const totalHeight = iframeDoc.body.scrollHeight;
-            document.body.removeChild(iframe);
-            const pageCount = Math.ceil(totalHeight / A4_HEIGHT_PX);
-            resolve(pageCount);
-          } catch (err) {
-            document.body.removeChild(iframe);
-            reject(err);
-          }
-        };
-        
-        iframe.srcdoc = htmlString;
-      });
-    };
-
-    const updatePageCount = async () => {
-      try {
-        let content = '';
-        
-        // Use appropriate content based on editing state
-        if (isEditing && editableRef.current) {
-          content = editableRef.current.innerHTML;
-        } else if (data.editedHtml) {
-          content = data.editedHtml;
-        } else {
-          // For template changes, we need to render the template component
-          const tempContainer = document.createElement('div');
-          tempContainer.style.width = `${baseWidth}px`;
-          tempContainer.style.padding = '20px';
-          tempContainer.style.fontSize = '14px';
-          tempContainer.style.lineHeight = '1.5';
-          tempContainer.style.fontFamily = 'system-ui, -apple-system, sans-serif';
-          tempContainer.style.boxSizing = 'border-box';
-          tempContainer.style.backgroundColor = 'white';
-          tempContainer.style.margin = '0';
-          tempContainer.style.color = '#000';
-          tempContainer.style.overflow = 'visible';
-          
-          document.body.appendChild(tempContainer);
-          
-          // Create a React root and render the template
-          const { createRoot } = await import('react-dom/client');
-          const root = createRoot(tempContainer);
-          root.render(<TemplateComponent data={data} />);
-          
-          // Wait for render to complete
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          content = tempContainer.innerHTML;
-          
-          // Remove trailing <br> tags
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = content;
-          while (tempDiv.lastChild && tempDiv.lastChild.nodeName === 'BR') {
-            tempDiv.removeChild(tempDiv.lastChild);
-          }
-          content = tempDiv.innerHTML;
-          
-          document.body.removeChild(tempContainer);
-          root.unmount();
-        }
-
-        const requiredPages = await calculateWithIframe(content);
-        
-        if (requiredPages !== pageCount) {
-          setPageCount(requiredPages);
-          if (setPageCountProp) {
-            setPageCountProp(requiredPages);
-          }
-        }
-      } catch (error) {
-        console.error('Page calculation error:', error);
-        // Fallback to 1 page
-        if (pageCount !== 1) {
-          setPageCount(1);
-          if (setPageCountProp) {
-            setPageCountProp(1);
-          }
-        }
-      }
-    };
-
-    updatePageCount();
-  }, [pageCount, setPageCountProp, isEditing, data, baseWidth]);
-
   // Fit to width
-  const fitToWidth = (containerWidth: number) => {
-    const padding = 40;
+  const fitToWidth = useCallback((containerWidth: number) => {
+    const padding = 64;
     const availableWidth = containerWidth - padding;
-    const newZoom = Math.min(availableWidth / baseWidth, 1);
-    setZoom(newZoom);
-  };
+    const newZoom = Math.min(Math.max(availableWidth / baseWidth, 0.5), 1.2);
+    setZoom(prev => {
+      if (Math.abs(prev - newZoom) > 0.001) return newZoom;
+      return prev;
+    });
+  }, []);
 
-  // Initialize with fit-to-width
+  // Initialize with fit-to-width (once)
   useEffect(() => {
-    if (containerRef.current && !isInitialized) {
+    if (wrapperRef.current && !isInitialized) {
       setTimeout(() => {
-        fitToWidth(containerRef.current!.offsetWidth);
-        setIsInitialized(true);
-        if (isEditing) {
-          setTimeout(calculateRequiredPages, 100); // Initial page calculation
+        if (wrapperRef.current) {
+          fitToWidth(wrapperRef.current.clientWidth);
+          setIsInitialized(true);
         }
       }, 100);
     }
-  }, [isInitialized, isEditing, calculateRequiredPages]);
+  }, [isInitialized, fitToWidth]);
 
-  // Watch for template/data changes and recalculate pages
+  // Handle window resize to refit
   useEffect(() => {
-    if (isInitialized && !isEditing) {
-      // Add a small delay to ensure the template has rendered
-      const timeoutId = setTimeout(() => {
-        calculateRequiredPages();
-      }, 150);
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [data, TemplateComponent, isInitialized, isEditing, calculateRequiredPages]);
+    const handleResize = () => {
+      if (wrapperRef.current && isInitialized) {
+        fitToWidth(wrapperRef.current.clientWidth);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isInitialized, fitToWidth]);
 
   // Zoom controls
   const handleZoomIn = () => setZoom((prev) => Math.min(prev * 1.2, 3));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev / 1.2, 0.2));
   const handleResetZoom = () => setZoom(1);
   const handleFitToWidth = () => {
-    if (containerRef.current) fitToWidth(containerRef.current.offsetWidth);
+    if (wrapperRef.current) fitToWidth(wrapperRef.current.clientWidth);
   };
 
   // Undo
@@ -407,22 +225,18 @@ export const ResumePreview = ({
       isUndoRedoRef.current = true;
       const newIndex = historyIndex - 1;
       const prevState = history[newIndex];
-      
       const markers = saveCursorPosition();
       editableRef.current.innerHTML = prevState.content;
-      if (setEditableContent) {
-        setEditableContent(prevState.content);
-      }
+      setLocalContent(prevState.content);
+      if (setEditableContent) setEditableContent(prevState.content);
       setHistoryIndex(newIndex);
       setHasUnsavedChanges(true);
-      
       setTimeout(() => {
         restoreCursorPosition(markers);
         isUndoRedoRef.current = false;
-        calculateRequiredPages();
-      }, 50);
+      }, 10);
     }
-  }, [historyIndex, history, setEditableContent, calculateRequiredPages, saveCursorPosition, restoreCursorPosition]);
+  }, [historyIndex, history, saveCursorPosition, restoreCursorPosition, setEditableContent]);
 
   // Redo
   const handleRedo = useCallback(() => {
@@ -430,91 +244,66 @@ export const ResumePreview = ({
       isUndoRedoRef.current = true;
       const newIndex = historyIndex + 1;
       const nextState = history[newIndex];
-      
       const markers = saveCursorPosition();
       editableRef.current.innerHTML = nextState.content;
-      if (setEditableContent) {
-        setEditableContent(nextState.content);
-      }
+      setLocalContent(nextState.content);
+      if (setEditableContent) setEditableContent(nextState.content);
       setHistoryIndex(newIndex);
       setHasUnsavedChanges(true);
-      
       setTimeout(() => {
         restoreCursorPosition(markers);
         isUndoRedoRef.current = false;
-        calculateRequiredPages();
-      }, 50);
+      }, 10);
     }
-  }, [historyIndex, history, setEditableContent, calculateRequiredPages, saveCursorPosition, restoreCursorPosition]);
+  }, [historyIndex, history, saveCursorPosition, restoreCursorPosition, setEditableContent]);
 
-  // Save
+  // Save handler
   const handleSave = useCallback(() => {
-    if (editableRef.current) {
-      const currentContent = cleanContent(editableRef.current.innerHTML);
-      setEditableContent?.(currentContent);
-      setLocalContent(currentContent);
-      onSave?.(currentContent);
-      setHasUnsavedChanges(false);
-    }
-  }, [setEditableContent, onSave, cleanContent]);
+    if (!editableRef.current || !onSave) return;
+    const content = cleanContent(editableRef.current.innerHTML);
+    if (setEditableContent) setEditableContent(content);
+    setLocalContent(content);
+    onSave(content);
+    setHasUnsavedChanges(false);
+  }, [onSave, cleanContent, setEditableContent]);
 
   // Content change handler
   const handleContentChange = useCallback(() => {
-    if (!editableRef.current || isUndoRedoRef.current) return;
-    const newContent = editableRef.current.innerHTML;
-    setLocalContent(newContent);
-    setHasUnsavedChanges(true);
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current);
-    }
+    if (!editableRef.current) return;
+    if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
     updateTimeoutRef.current = setTimeout(() => {
-      calculateRequiredPages();
-      addToHistory(newContent);
-    }, 300); // Reduced debounce time for faster page updates
-  }, [calculateRequiredPages, addToHistory]);
+      if (!editableRef.current) return;
+      const currentContent = editableRef.current.innerHTML;
+      setLocalContent(currentContent);
+      if (setEditableContent) setEditableContent(currentContent);
+      setHasUnsavedChanges(true);
+      addToHistory(currentContent);
+    }, 100);
+  }, [setEditableContent, addToHistory]);
 
-  // Handle Enter key
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+  // Keyboard handling
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Tab') {
       e.preventDefault();
-      
-      const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0) return;
-      
-      const range = selection.getRangeAt(0);
-      const br = document.createElement('br');
-      
-      range.deleteContents();
-      range.insertNode(br);
-      
-      range.setStartAfter(br);
-      range.setEndAfter(br);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      
-      setTimeout(() => {
-        handleContentChange();
-        calculateRequiredPages();
-      }, 10);
+      document.execCommand('insertText', false, '  ');
     }
-  }, [handleContentChange, calculateRequiredPages]);
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      handleSave();
+    }
+  }, [handleSave]);
 
-  // Handle paste
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+  // Paste handler
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault();
-    
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
-    
     const text = e.clipboardData.getData('text/plain');
     if (!text) return;
-    
     const range = selection.getRangeAt(0);
     range.deleteContents();
-    
     const lines = text.split(/\r?\n/);
-    let lastNode = null;
-    
+    let lastNode: Node | null = null;
     lines.forEach((line, index) => {
       if (index > 0) {
         const br = document.createElement('br');
@@ -523,7 +312,6 @@ export const ResumePreview = ({
         range.setEndAfter(br);
         lastNode = br;
       }
-      
       if (line) {
         const textNode = document.createTextNode(line);
         range.insertNode(textNode);
@@ -532,94 +320,39 @@ export const ResumePreview = ({
         lastNode = textNode;
       }
     });
-    
     if (lastNode) {
       range.setStartAfter(lastNode);
       range.setEndAfter(lastNode);
       selection.removeAllRanges();
       selection.addRange(range);
     }
-    
-    setTimeout(() => {
-      handleContentChange();
-      calculateRequiredPages();
-    }, 10);
-  }, [handleContentChange, calculateRequiredPages]);
-
-  // Auto-scroll to cursor when new pages are created
-  useEffect(() => {
-    if (isEditing && scrollContainerRef.current && editableRef.current) {
-      // Wait for DOM to update before scrolling
-      setTimeout(() => {
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          const cursorNode = range.startContainer;
-          
-          if (cursorNode.nodeType === Node.TEXT_NODE || cursorNode.nodeType === Node.ELEMENT_NODE) {
-            const element = cursorNode.nodeType === Node.TEXT_NODE 
-              ? cursorNode.parentElement 
-              : cursorNode as HTMLElement;
-            
-            if (element) {
-              // Calculate position relative to scroll container
-              const elementRect = element.getBoundingClientRect();
-              const containerRect = scrollContainerRef.current!.getBoundingClientRect();
-              
-              // Scroll if cursor is near bottom of visible area
-              if (elementRect.bottom > containerRect.bottom - 50) {
-                scrollContainerRef.current!.scrollTop += elementRect.bottom - containerRect.bottom + 50;
-              }
-            }
-          }
-        }
-      }, 100);
-    }
-  }, [pageCount, isEditing]);
-
-  // Multi-page support
-  const pages = Array.from({ length: pageCount }, (_, index) => index);
+    setTimeout(() => handleContentChange(), 10);
+  }, [handleContentChange]);
 
   // Focus on edit mode
   useEffect(() => {
     if (isEditing && editableRef.current) {
       setTimeout(() => {
-        if (editableRef.current) {
-          editableRef.current.focus();
-          calculateRequiredPages(); // Recalculate on focus
-        }
+        if (editableRef.current) editableRef.current.focus();
       }, 100);
     }
-  }, [isEditing, calculateRequiredPages]);
+  }, [isEditing]);
 
   // Keyboard shortcuts
   useEffect(() => {
     if (!isEditing) return;
-    
     const handleKeyDownGlobal = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey)) {
         switch (e.key.toLowerCase()) {
           case 'z':
-            if (e.shiftKey) {
-              e.preventDefault();
-              handleRedo();
-            } else {
-              e.preventDefault();
-              handleUndo();
-            }
+            if (e.shiftKey) { e.preventDefault(); handleRedo(); }
+            else { e.preventDefault(); handleUndo(); }
             break;
-          case 'y':
-            e.preventDefault();
-            handleRedo();
-            break;
-          case 's':
-            e.preventDefault();
-            handleSave();
-            break;
+          case 'y': e.preventDefault(); handleRedo(); break;
+          case 's': e.preventDefault(); handleSave(); break;
         }
       }
     };
-
     document.addEventListener('keydown', handleKeyDownGlobal);
     return () => document.removeEventListener('keydown', handleKeyDownGlobal);
   }, [isEditing, handleUndo, handleRedo, handleSave]);
@@ -632,18 +365,15 @@ export const ResumePreview = ({
     };
   }, []);
 
-  // Update effect to set innerHTML when isEditing or editableContent changes
+  // Update innerHTML when isEditing or editableContent changes
   useEffect(() => {
     if (isEditing && editableRef.current) {
       editableRef.current.innerHTML = editableContent || '<div><br></div>';
     }
-     
   }, [isEditing, editableContent]);
 
-
-
   return (
-    <div className={`flex flex-col ${containerClassName}`}>
+    <div ref={wrapperRef} className={`flex flex-col ${containerClassName}`}>
       {showZoomControls && (
         <div className="flex items-center gap-2 mb-4 p-3 bg-muted/30 rounded-lg border">
           <Button variant="outline" size="sm" onClick={handleZoomOut} className="h-8 w-8 p-0" disabled={zoom <= 0.2}>
@@ -658,35 +388,21 @@ export const ResumePreview = ({
           <Button variant="outline" size="sm" onClick={handleFitToWidth} className="h-8 w-8 p-0" title="Fit to width">
             <Maximize2 className="h-4 w-4 text-foreground" />
           </Button>
-          
+
           {isEditing && (
             <>
               <div className="w-px h-6 bg-border mx-1" />
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleUndo} 
-                className="h-8 w-8 p-0" 
-                disabled={historyIndex <= 0}
-                title="Undo (Ctrl+Z)"
-              >
+              <Button variant="outline" size="sm" onClick={handleUndo} className="h-8 w-8 p-0" disabled={historyIndex <= 0} title="Undo (Ctrl+Z)">
                 <Undo className="h-4 w-4 text-foreground" />
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleRedo} 
-                className="h-8 w-8 p-0" 
-                disabled={historyIndex >= history.length - 1}
-                title="Redo (Ctrl+Y)"
-              >
+              <Button variant="outline" size="sm" onClick={handleRedo} className="h-8 w-8 p-0" disabled={historyIndex >= history.length - 1} title="Redo (Ctrl+Y)">
                 <Redo className="h-4 w-4 text-foreground" />
               </Button>
               {onSave && (
-                <Button 
-                  variant={hasUnsavedChanges ? "default" : "outline"} 
-                  size="sm" 
-                  onClick={handleSave} 
+                <Button
+                  variant={hasUnsavedChanges ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleSave}
                   className="h-8 px-3 text-xs font-medium"
                   title="Save (Ctrl+S)"
                 >
@@ -696,241 +412,125 @@ export const ResumePreview = ({
               )}
             </>
           )}
-          
+
           <div className="ml-auto flex items-center gap-2">
-            {pageCount > 0 && !(isEditing && isMobile) && (
-              <span className="text-xs text-muted-foreground px-2">
-                {pageCount} {pageCount === 1 ? 'page' : 'pages'}
-              </span>
-            )}
             {rightControls}
           </div>
         </div>
       )}
-      
+
       <div
         ref={containerRef}
-        className="flex-1 bg-gray-100 rounded-lg border overflow-auto resume-preview-container"
+        className="flex-1 bg-gray-100 dark:bg-gray-900 rounded-lg border overflow-auto resume-preview-container custom-scrollbar"
         style={{ minHeight: '400px' }}
       >
-        <div className="p-8 flex flex-col items-center gap-6" style={{ width: 'fit-content', minWidth: '100%' }}>
-          {isEditing || isMobile ? (
-            <div
-              className="bg-white shadow-lg rounded-sm relative"
-              style={{ 
-                width: baseWidth * zoom, 
-                height: 'auto', // Changed from fixed height to auto
-                flexShrink: 0,
-                overflow: 'visible', // Changed from auto to visible
-              }}
-              ref={scrollContainerRef}
-            >
-              <div className="absolute -top-6 left-0 text-xs text-muted-foreground" style={{ fontSize: '10px' }}>
-                Editable Resume (Multi-page)
-              </div>
-              <div style={{ 
-                width: baseWidth * zoom, 
-                height: 'auto', // Changed from fixed height to auto
-                overflow: 'visible', // Changed from auto to visible
-                position: 'relative' 
+        <div className="p-4 lg:p-8 w-fit mx-auto">
+          <div
+            className="bg-white shadow-lg rounded-sm relative"
+            style={{
+              width: baseWidth * zoom,
+              minWidth: baseWidth * zoom,
+              height: 'auto',
+              flexShrink: 0,
+              overflow: 'visible',
+            }}
+          >
+            <div style={{
+              width: baseWidth * zoom,
+              height: 'auto',
+              overflow: 'visible',
+              position: 'relative'
+            }}>
+              <div style={{
+                width: baseWidth,
+                height: 'auto',
+                transform: `scale(${zoom})`,
+                transformOrigin: 'top left',
+                position: 'relative',
+                background: 'white',
+                boxSizing: 'border-box',
               }}>
-                <div style={{ 
-                  width: baseWidth, 
-                  height: 'auto', // Changed from minHeight to auto height
-                  transform: `scale(${zoom})`, 
-                  transformOrigin: 'top left', 
+                <div style={{
                   position: 'relative',
-                  background: 'white',
+                  width: baseWidth,
+                  minHeight: 400,
+                  fontSize: '14px',
+                  lineHeight: '1.5',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
                   boxSizing: 'border-box',
+                  backgroundColor: 'transparent',
                 }}>
-                  {/* Visual page breaks - positioned based on actual content height */}
-                  {pageCount > 1 && [...Array(pageCount - 1)].map((_, i) => (
+                  {isEditing ? (
                     <div
-                      key={i}
+                      contentEditable
+                      suppressContentEditableWarning
+                      ref={editableRef}
+                      className="editable-resume-content"
                       style={{
-                        position: 'absolute',
-                        top: baseHeight * (i + 1),
-                        left: '20px',
-                        right: '20px',
-                        borderTop: '3px dashed #9ca3af', // gray-400
-                        zIndex: 20,
-                        pointerEvents: 'none',
+                        outline: 'none',
+                        cursor: 'text',
+                        wordWrap: 'break-word',
+                        whiteSpace: 'pre-wrap',
+                        overflow: 'visible',
+                        caretColor: '#000',
+                        WebkitUserSelect: 'text',
+                        userSelect: 'text',
+                      }}
+                      onInput={handleContentChange}
+                      onPaste={handlePaste}
+                      onKeyDown={handleKeyDown}
+                      onFocus={() => {
+                        if (editableRef.current) {
+                          const selection = window.getSelection();
+                          if (!selection || selection.rangeCount === 0) {
+                            const range = document.createRange();
+                            range.selectNodeContents(editableRef.current);
+                            range.collapse(false);
+                            selection?.removeAllRanges();
+                            selection?.addRange(range);
+                          }
+                        }
+                      }}
+                      onBlur={() => {
+                        if (editableRef.current && setEditableContent) {
+                          const currentContent = editableRef.current.innerHTML;
+                          const newContent = cleanContent(currentContent);
+                          if (newContent !== currentContent) {
+                            const markers = saveCursorPosition();
+                            editableRef.current.innerHTML = newContent;
+                            restoreCursorPosition(markers);
+                          }
+                          setEditableContent(newContent);
+                          setLocalContent(newContent);
+                          if (newContent !== editableContent) {
+                            setHasUnsavedChanges(true);
+                          }
+                        }
                       }}
                     >
-                      <span style={{
-                        position: 'absolute',
-                        top: '-12px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        backgroundColor: 'white',
-                        padding: '0 8px',
-                        color: '#6b7280', // gray-500
-                        fontSize: '12px',
-                        fontFamily: 'system-ui, -apple-system, sans-serif',
-                        fontWeight: '600',
-                      }}>
-                        Page {i + 2}
-                      </span>
+                      {editableContent ? (
+                        <div dangerouslySetInnerHTML={{ __html: editableContent }} />
+                      ) : data.editedHtml ? (
+                        <div dangerouslySetInnerHTML={{ __html: data.editedHtml }} />
+                      ) : (
+                        <TemplateComponent data={data} />
+                      )}
                     </div>
-                  ))}
-                                    <div
-                    style={{
-                      position: 'relative',
-                      width: baseWidth,
-                      minHeight: baseHeight,
-                      padding: `${pagePadding}px`,
-                      fontSize: '14px',
-                      lineHeight: '1.5',
-                      fontFamily: 'system-ui, -apple-system, sans-serif',
-                      boxSizing: 'border-box',
-                      backgroundColor: 'transparent',
-                    }}
-                  >
-                    {isEditing ? (
-                      <div
-                        contentEditable
-                        suppressContentEditableWarning
-                        ref={editableRef}
-                        className="editable-resume-content"
-                        style={{
-                          outline: 'none',
-                          cursor: 'text',
-                          wordWrap: 'break-word',
-                          whiteSpace: 'pre-wrap',
-                          overflow: 'visible',
-                          caretColor: '#000',
-                          WebkitUserSelect: 'text',
-                          userSelect: 'text',
-                        }}
-                        onInput={handleContentChange}
-                        onPaste={handlePaste}
-                        onKeyDown={handleKeyDown}
-                        onFocus={() => {
-                          // Ensure we have focus
-                          if (editableRef.current) {
-                            const selection = window.getSelection();
-                            if (!selection || selection.rangeCount === 0) {
-                              const range = document.createRange();
-                              range.selectNodeContents(editableRef.current);
-                              range.collapse(false);
-                              selection?.removeAllRanges();
-                              selection?.addRange(range);
-                            }
-                          }
-                        }}
-                        onBlur={() => {
-                          if (editableRef.current && setEditableContent) {
-                            const currentContent = editableRef.current.innerHTML;
-                            const newContent = cleanContent(currentContent);
-                            if (newContent !== currentContent) {
-                              const markers = saveCursorPosition();
-                              editableRef.current.innerHTML = newContent;
-                              restoreCursorPosition(markers);
-                            }
-                            setEditableContent(newContent);
-                            setLocalContent(newContent);
-                            if (newContent !== editableContent) {
-                              setHasUnsavedChanges(true);
-                            }
-                            calculateRequiredPages();
-                          }
-                        }}
-                      >
-                        {editableContent ? (
-                          <div dangerouslySetInnerHTML={{ __html: editableContent }} />
-                        ) : data.editedHtml ? (
-                          <div dangerouslySetInnerHTML={{ __html: data.editedHtml }} />
-                        ) : (
-                          <TemplateComponent data={data} />
-                        )}
-                      </div>
-                    ) : (
-                      <div>
-                        {editableContent ? (
-                          <div dangerouslySetInnerHTML={{ __html: editableContent }} />
-                        ) : data.editedHtml ? (
-                          <div dangerouslySetInnerHTML={{ __html: data.editedHtml }} />
-                        ) : (
-                          <TemplateComponent data={data} />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div 
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: baseWidth,
-                      height: baseHeight * pageCount, // This creates the visual page boundary
-                      border: '2px dashed #3b82f6',
-                      borderRadius: '2px',
-                      pointerEvents: 'none',
-                      zIndex: 15,
-                    }}
-                  />
+                  ) : (
+                    <div>
+                      {editableContent ? (
+                        <div dangerouslySetInnerHTML={{ __html: editableContent }} />
+                      ) : data.editedHtml ? (
+                        <div dangerouslySetInnerHTML={{ __html: data.editedHtml }} />
+                      ) : (
+                        <TemplateComponent data={data} />
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-          ) : (
-            pages.map((pageIndex) => (
-              <div
-                key={pageIndex}
-                className="bg-white shadow-lg rounded-sm relative"
-                style={{ 
-                  width: baseWidth * zoom, 
-                  height: baseHeight * zoom, 
-                  flexShrink: 0,
-                  marginBottom: pageIndex < pageCount - 1 ? `${pageGap * zoom}px` : 0
-                }}
-              >
-                <div className="absolute -top-6 left-0 text-xs text-muted-foreground" style={{ fontSize: '10px' }}>
-                  Page {pageIndex + 1}
-                </div>
-                <div style={{ 
-                  width: baseWidth * zoom, 
-                  height: baseHeight * zoom, 
-                  overflow: 'hidden', 
-                  position: 'relative' 
-                }}>
-                  <div style={{ 
-                    width: baseWidth, 
-                    height: baseHeight, 
-                    transform: `scale(${zoom})`, 
-                    transformOrigin: 'top left', 
-                    position: 'relative' 
-                  }}>
-                    <div style={{ 
-                      position: 'absolute', 
-                      top: -pageIndex * (baseHeight + pageGap), 
-                      left: 0, 
-                      width: baseWidth, 
-                      minHeight: baseHeight, 
-                      backgroundColor: 'white' 
-                    }}>
-                      <div style={{ 
-                        width: baseWidth, 
-                        minHeight: baseHeight, 
-                        padding: `${pagePadding}px`, 
-                        fontSize: '14px', 
-                        lineHeight: '1.5', 
-                        fontFamily: 'system-ui, -apple-system, sans-serif', 
-                        boxSizing: 'border-box' 
-                      }}>
-                        {isEditing && editableContent ? (
-                          <div dangerouslySetInnerHTML={{ __html: editableContent }} />
-                        ) : data.editedHtml ? (
-                          <div dangerouslySetInnerHTML={{ __html: data.editedHtml }} />
-                        ) : (
-                          <TemplateComponent data={data} />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
+          </div>
         </div>
       </div>
     </div>

@@ -5,11 +5,11 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 transform hover:scale-[1.02] active:scale-[0.98]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 transform hover:scale-[1.02] active:scale-[0.98]",
   {
     variants: {
       variant: {
-        default: "bg-primary-500 text-primary-foreground shadow-button hover:shadow-button-hover hover:bg-primary-600 focus:bg-primary-600",
+        default: "bg-primary text-primary-foreground shadow-button hover:shadow-button-hover hover:bg-primary/90 focus:bg-primary/90",
         destructive:
           "bg-red-500 text-white shadow-button hover:shadow-button-hover hover:bg-red-600 focus:bg-red-600",
         outline:
@@ -17,7 +17,7 @@ const buttonVariants = cva(
         secondary:
           "bg-secondary text-secondary-foreground shadow-soft hover:shadow-modern hover:bg-secondary/80 focus:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground shadow-soft hover:shadow-modern focus:bg-accent focus:text-accent-foreground",
-        link: "text-primary-600 underline-offset-4 hover:underline hover:text-primary-700 focus:text-primary-700 shadow-none hover:shadow-none",
+        link: "text-primary underline-offset-4 hover:underline hover:text-primary/80 focus:text-primary/80 shadow-none hover:shadow-none",
       },
       size: {
         default: "h-12 px-6 py-3",
@@ -36,7 +36,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  VariantProps<typeof buttonVariants> {
   asChild?: boolean
 }
 

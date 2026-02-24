@@ -46,11 +46,11 @@ export const PublishButton = ({ resumeData, existingId, onPublished, keyProp, re
 
   // Helper function to check if form has any meaningful data
   const isFormEmpty = () => {
-    return !(resumeData.firstName || resumeData.lastName || resumeData.email || 
-             resumeData.phone || resumeData.summary || resumeData.experiences.length > 0 || 
-             resumeData.education.length > 0 || resumeData.skills.length > 0 ||
-             resumeData.certifications.length > 0 || resumeData.languages.length > 0 ||
-             resumeData.customSections.length > 0);
+    return !(resumeData.firstName || resumeData.lastName || resumeData.email ||
+      resumeData.phone || resumeData.summary || resumeData.experiences.length > 0 ||
+      resumeData.education.length > 0 || resumeData.skills.length > 0 ||
+      resumeData.certifications.length > 0 || resumeData.languages.length > 0 ||
+      resumeData.customSections.length > 0);
   };
 
   const handlePublish = async () => {
@@ -104,12 +104,12 @@ export const PublishButton = ({ resumeData, existingId, onPublished, keyProp, re
       }
       setShareKey(key);
       const encrypted = encryptAES(JSON.stringify(resumeData), key);
-      
+
       // Use user's name for title if available
       const title = resumeData.firstName && resumeData.lastName
         ? `${resumeData.firstName} ${resumeData.lastName} Resume`
         : 'Resume';
-      
+
       const result = await publishResume(encrypted, key, title, existingId);
       if (result) {
         const action = existingId ? 'updated' : 'published';
@@ -137,7 +137,7 @@ export const PublishButton = ({ resumeData, existingId, onPublished, keyProp, re
     } catch (error) {
       // Enhanced error handling
       let errorMessage = "Failed to publish resume";
-      
+
       if (error instanceof Error) {
         if (error.message.includes('rate limit')) {
           errorMessage = "Rate limit exceeded. Please try again later.";
@@ -149,7 +149,7 @@ export const PublishButton = ({ resumeData, existingId, onPublished, keyProp, re
           errorMessage = error.message;
         }
       }
-      
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -171,10 +171,9 @@ export const PublishButton = ({ resumeData, existingId, onPublished, keyProp, re
       <Button
         onClick={() => setShowConfirmation(true)}
         disabled={isPublishing}
-        className={`flex items-center justify-center shadow-elegant sm:w-auto min-h-[44px]${isMobile ? ' h-10 w-10 min-w-10 min-h-10' : ''}`}
-        variant={isMobile ? "default" : (existingId ? "outline" : "default")}
-        size={isMobile ? "icon" : undefined}
-        aria-label={isMobile ? (isPublishing ? (existingId ? 'Re-publishing Resume' : 'Publishing Resume') : (existingId ? 'Re-publish Resume' : 'Publish Resume')) : undefined}
+        variant="outline"
+        size={isMobile ? "icon" : "sm"}
+        aria-label={isPublishing ? (existingId ? 'Re-publishing Resume' : 'Publishing Resume') : (existingId ? 'Re-publish Resume' : 'Publish Resume')}
       >
         {isPublishing ? (
           <RefreshCw className="h-4 w-4 animate-spin" />
@@ -197,7 +196,7 @@ export const PublishButton = ({ resumeData, existingId, onPublished, keyProp, re
               Rate Limit Exceeded
             </DialogTitle>
             <DialogDescription>
-              You've reached the maximum number of resume publications allowed in this time window. 
+              You've reached the maximum number of resume publications allowed in this time window.
               This helps protect our service from abuse while allowing legitimate users to create resumes.
             </DialogDescription>
           </DialogHeader>
@@ -234,13 +233,13 @@ export const PublishButton = ({ resumeData, existingId, onPublished, keyProp, re
               {existingId ? 'Update Published Resume' : 'Publish Resume'}
             </DialogTitle>
             <DialogDescription>
-              {existingId 
+              {existingId
                 ? 'This will update your published resume with the current changes.'
                 : 'This will create a shareable link to your resume that you can edit anytime.'
               }
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <Alert>
               <Lock className="h-4 w-4" />
@@ -248,7 +247,7 @@ export const PublishButton = ({ resumeData, existingId, onPublished, keyProp, re
                 Your resume data is encrypted and secure. Only you can access it with the unique key.
               </AlertDescription>
             </Alert>
-            
+
             <div className="text-sm text-muted-foreground">
               <p>• Your resume will be encrypted before storage</p>
               <p>• You'll receive a unique, shareable link</p>
@@ -287,7 +286,7 @@ export const PublishButton = ({ resumeData, existingId, onPublished, keyProp, re
               Your resume has been published and is now accessible via the link below.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="p-3 bg-muted rounded-lg">
               <p className="text-sm font-medium mb-2">Share Link:</p>
@@ -303,7 +302,7 @@ export const PublishButton = ({ resumeData, existingId, onPublished, keyProp, re
                 </Button>
               </div>
             </div>
-            
+
             <Alert>
               <Lock className="h-4 w-4" />
               <AlertDescription>

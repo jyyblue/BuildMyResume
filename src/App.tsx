@@ -16,6 +16,7 @@ import About from "./pages/About";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
+import AIBuilder from "./pages/AIBuilder";
 import Analytics from "./components/Analytics";
 
 const queryClient = new QueryClient();
@@ -28,15 +29,16 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
-                         <BrowserRouter>
-               <ScrollToTop />
-               {/* Analytics: manual Umami tracking, excluding /view/:id */}
-               <Analytics />
-               <Routes>
+            <BrowserRouter>
+              <ScrollToTop />
+              {/* Analytics: manual Umami tracking, excluding /view/:id */}
+              <Analytics />
+              <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/editor" element={<Editor />} />
                 <Route path="/editor/:id" element={<Editor />} />
+                <Route path="/ai-builder" element={<AIBuilder />} />
                 <Route path="/view/:id" element={<ViewResume />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/about" element={<About />} />

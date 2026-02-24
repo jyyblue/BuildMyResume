@@ -1,0 +1,1 @@
+export { ResumeDocument } from './ResumeDocument';

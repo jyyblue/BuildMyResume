@@ -1,3 +1,22 @@
+import { toast } from 'sonner';
+
+// Define the global Puter interface
+declare global {
+  interface Window {
+    puter: {
+      ai: {
+        chat: (messages: string | any[], options?: any) => Promise<any>;
+      };
+      auth: {
+        isSignedIn: () => boolean;
+        signIn: () => Promise<any>;
+        signOut: () => Promise<any>;
+        user: () => Promise<any>;
+      }
+    };
+  }
+}
+
 interface AIEnhancementRequest {
   field: string;
   content: string;
@@ -14,8 +33,6 @@ interface AIEnhancementResponse {
   field: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
-
 export const enhanceContentWithAI = async (
   field: string,
   content: string,
@@ -23,37 +40,58 @@ export const enhanceContentWithAI = async (
   rejectedResponses?: string[]
 ): Promise<AIEnhancementResponse> => {
   try {
-    // Create request payload
-    const payload: any = {
-      field,
-      content,
-      context,
-      rejectedResponses
-    };
-    
-    // Add signature if SHARED_SECRET is available
-    const SHARED_SECRET = import.meta.env.VITE_SHARED_SECRET;
-    if (SHARED_SECRET) {
-      const CryptoJS = await import('crypto-js');
-      const signature = CryptoJS.HmacSHA256(JSON.stringify({ field, content }), SHARED_SECRET).toString();
-      payload.signature = signature;
+    const PROXY_URL = 'http://localhost:4000/ai/chat';
+
+    if (!window.puter?.auth?.authToken) {
+      // Fallback for types or if token is missing (should be handled by UI)
+      console.warn("Puter Auth Token missing, attempting to use SDK directly or failing...");
+      // For now, let's assume token is available if Signed In.
     }
-    
-    const response = await fetch(`${API_BASE_URL}/enhance-content`, {
+
+    // Helper to get token
+    const getToken = () => {
+      // @ts-ignore
+      return window.puter?.auth?.authToken || window.puter?.auth?.session?.token;
+    };
+
+    const token = getToken();
+    if (!token) throw new Error("Please sign in to Puter.js first.");
+
+    const response = await fetch(PROXY_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: `Field: ${field}\nContent: "${content}"\n${context ? `Context: ${JSON.stringify(context)}` : ''}`,
+        mode: 'ENHANCE',
+        token
+      })
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to enhance content');
+    if (!response.ok) throw new Error(`Proxy Error: ${response.statusText}`);
+
+    // Handle Stream or Text
+    // The proxy streams. We need to collect it.
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+      }
+    } else {
+      fullText = await response.text();
     }
 
-    const data = await response.json();
-    return data;
+    const enhancedContent = fullText.trim();
+
+    return {
+      enhancedContent,
+      originalContent: content,
+      field
+    };
   } catch (error) {
     console.error('AI enhancement error:', error);
     throw error;
@@ -68,6 +106,7 @@ export const generateResumeFromBrief = async (
     experienceLevel?: string;
   }
 ): Promise<{
+  // ... (keeping return type same)
   firstName: string;
   lastName: string;
   email: string;
@@ -122,36 +161,53 @@ export const generateResumeFromBrief = async (
   selectedTemplate: string;
 }> => {
   try {
-    // Create request payload
-    const payload: any = {
-      brief,
-      context,
-      type: 'generate-resume'
+    const PROXY_URL = 'http://localhost:4000/ai/chat';
+
+    // Helper to get token
+    const getToken = () => {
+      // @ts-ignore
+      return window.puter?.auth?.authToken || window.puter?.auth?.session?.token;
     };
-    
-    // Add signature if SHARED_SECRET is available
-    const SHARED_SECRET = import.meta.env.VITE_SHARED_SECRET;
-    if (SHARED_SECRET) {
-      const CryptoJS = await import('crypto-js');
-      const signature = CryptoJS.HmacSHA256(JSON.stringify({ brief, type: 'generate-resume' }), SHARED_SECRET).toString();
-      payload.signature = signature;
-    }
-    
-    const response = await fetch(`${API_BASE_URL}/generate-resume`, {
+
+    const token = getToken();
+    if (!token) throw new Error("Please sign in to Puter.js first.");
+
+    const response = await fetch(PROXY_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: brief, // We just send the brief, backend wraps in prompt
+        mode: 'GENERATE',
+        token
+      })
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to generate resume data');
+    if (!response.ok) throw new Error(`Proxy Error: ${response.statusText}`);
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+      }
+    } else {
+      fullText = await response.text();
     }
 
-    const data = await response.json();
-    return data;
+    const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) {
+      if (fullText.includes("INVALID_CONTENT")) {
+        throw new Error(fullText);
+      }
+      throw new Error("No JSON found in response");
+    }
+
+    return JSON.parse(jsonMatch[0]);
   } catch (error) {
     console.error('AI resume generation error:', error);
     throw error;

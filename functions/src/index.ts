@@ -7,6 +7,7 @@ import puppeteer from 'puppeteer-core';
 import chromium from 'chrome-aws-lambda';
 import * as CryptoJS from 'crypto-js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateOrUpdateResume, compileAndRender } from './services/resumeAgent';
 
 const app = express();
 
@@ -80,24 +81,24 @@ const validateSecurePdfRequest = (req: Request, res: Response, next: NextFunctio
   }
 
   const { encryptedData, signature } = req.body;
-  
+
   if (!encryptedData || !signature) {
     res.status(400).json({ error: 'Encrypted data and signature are required' });
     return;
   }
-  
+
   if (typeof encryptedData !== 'string' || typeof signature !== 'string') {
     res.status(400).json({ error: 'Invalid data format' });
     return;
   }
-  
+
   // Validate HMAC signature
   const expectedSignature = CryptoJS.HmacSHA256(encryptedData, SHARED_SECRET).toString();
   if (expectedSignature !== signature) {
     res.status(403).json({ error: 'Invalid signature' });
     return;
   }
-  
+
   next();
 };
 
@@ -110,22 +111,22 @@ app.post('/export-pdf', pdfExportLimiter, validateSecurePdfRequest, async (req: 
     }
 
     const { encryptedData } = req.body;
-    
+
     // Decrypt data
     const bytes = CryptoJS.AES.decrypt(encryptedData, SHARED_SECRET);
     const decrypted = bytes.toString(CryptoJS.enc.Utf8);
     const { html } = JSON.parse(decrypted);
-    
+
     if (!html || typeof html !== 'string') {
       res.status(400).json({ error: 'Invalid HTML content' });
       return;
     }
-    
+
     if (html.length > 1000000) {
       res.status(400).json({ error: 'HTML content too large (max 1MB)' });
       return;
     }
-    
+
     const browser = await puppeteer.launch({
       args: [
         ...chromium.args,
@@ -144,11 +145,11 @@ app.post('/export-pdf', pdfExportLimiter, validateSecurePdfRequest, async (req: 
     });
 
     const page = await browser.newPage();
-    
+
     // Optimize page settings for PDF generation
     await page.setCacheEnabled(false);
     await page.setRequestInterception(true);
-    
+
     // Block unnecessary resources to speed up rendering, but allow stylesheets
     page.on('request', (req) => {
       const resourceType = req.resourceType();
@@ -158,12 +159,12 @@ app.post('/export-pdf', pdfExportLimiter, validateSecurePdfRequest, async (req: 
         req.continue();
       }
     });
-    
+
     await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
-    
+
     // Add a small delay to ensure content is fully rendered
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
+
     let pdf;
     try {
       pdf = await page.pdf({
@@ -174,16 +175,16 @@ app.post('/export-pdf', pdfExportLimiter, validateSecurePdfRequest, async (req: 
     } catch (pdfError: any) {
       throw new Error(`PDF generation failed: ${pdfError.message}`);
     }
-    
+
     await browser.close();
-    
+
     // Convert to base64 to return to frontend
     const base64Pdf = Buffer.from(pdf).toString('base64');
     res.status(200).json({ pdf: base64Pdf });
-    
+
   } catch (error: any) {
     console.error('PDF generation error:', error);
-    
+
     // Provide more specific error messages
     if (error.name === 'TimeoutError') {
       res.status(408).json({ error: 'PDF generation timed out. Please try again with a simpler resume layout.' });
@@ -201,46 +202,46 @@ app.post('/export-pdf', pdfExportLimiter, validateSecurePdfRequest, async (req: 
 app.post('/enhance-content', [aiEnhancementLimiter, fieldSpecificLimiter], async (req: Request, res: Response): Promise<void> => {
   try {
     const { field, content, rejectedResponses = [] } = req.body;
-    
+
     // Security: Validate request signature (mandatory)
     const SHARED_SECRET = process.env.SHARED_SECRET;
     if (!SHARED_SECRET) {
       res.status(500).json({ error: 'Server configuration error' });
       return;
     }
-    
+
     const { signature } = req.body;
     if (!signature) {
       res.status(403).json({ error: 'Request signature required' });
       return;
     }
-    
+
     const expectedSignature = CryptoJS.HmacSHA256(JSON.stringify({ field, content }), SHARED_SECRET).toString();
     if (expectedSignature !== signature) {
       res.status(403).json({ error: 'Invalid request signature' });
       return;
     }
-    
+
     // Security: Validate request origin (optional additional protection)
     const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
     const origin = req.headers.origin || req.headers.referer;
-    
+
     if (allowedOrigins.length > 0 && origin) {
-      const isAllowedOrigin = allowedOrigins.some(allowedOrigin => 
+      const isAllowedOrigin = allowedOrigins.some(allowedOrigin =>
         origin.includes(allowedOrigin.replace('https://', '').replace('http://', ''))
       );
-      
+
       if (!isAllowedOrigin) {
         res.status(403).json({ error: 'Request origin not allowed' });
         return;
       }
     }
-    
+
     if (!field || !content || typeof content !== 'string') {
       res.status(400).json({ error: 'Field and content are required' });
       return;
     }
-    
+
     // Security: Check for suspicious patterns
     const suspiciousPatterns = [
       /(?:https?:\/\/[^\s]+)/gi, // URLs
@@ -250,33 +251,33 @@ app.post('/enhance-content', [aiEnhancementLimiter, fieldSpecificLimiter], async
       /(?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)/gi, // SQL injection
       /(?:admin|root|password|login|auth)/gi, // Sensitive keywords
     ];
-    
+
     for (const pattern of suspiciousPatterns) {
       if (pattern.test(content)) {
         res.status(400).json({ error: 'Content contains invalid characters or patterns' });
         return;
       }
     }
-    
+
     // Security: Check for repeated characters (spam detection)
     const repeatedChars = /(.)\1{10,}/; // Same character repeated 10+ times
     if (repeatedChars.test(content)) {
       res.status(400).json({ error: 'Content contains too many repeated characters' });
       return;
     }
-    
+
     // Security: Check for excessive whitespace
     const excessiveWhitespace = /\s{20,}/; // 20+ consecutive whitespace characters
     if (excessiveWhitespace.test(content)) {
       res.status(400).json({ error: 'Content contains excessive whitespace' });
       return;
     }
-    
+
     if (content.length > 5000) {
       res.status(400).json({ error: 'Content too long (max 5000 characters)' });
       return;
     }
-    
+
     // Validate content based on field type
     const validationRules = {
       summary: {
@@ -304,38 +305,38 @@ app.post('/enhance-content', [aiEnhancementLimiter, fieldSpecificLimiter], async
         message: 'Please enter your actual content instead of asking for generation'
       }
     };
-    
+
     const validation = validationRules[field as keyof typeof validationRules];
     if (validation) {
       if (content.length < validation.minLength) {
         res.status(400).json({ error: `Content too short. Please enter at least ${validation.minLength} characters.` });
         return;
       }
-      
+
       if (content.length > validation.maxLength) {
         res.status(400).json({ error: `Content too long. Please keep it under ${validation.maxLength} characters.` });
         return;
       }
-      
+
       const lowerContent = content.toLowerCase();
-      const hasInvalidPhrase = validation.invalidPhrases.some(phrase => 
+      const hasInvalidPhrase = validation.invalidPhrases.some(phrase =>
         lowerContent.includes(phrase.toLowerCase())
       );
-      
+
       if (hasInvalidPhrase) {
         res.status(400).json({ error: validation.message });
         return;
       }
     }
-    
+
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY || functions.config().gemini?.api_key;
     if (!GEMINI_API_KEY) {
       res.status(500).json({ error: 'AI service not configured' });
       return;
     }
-    
+
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: process.env.GEMINI_MODEL || functions.config().gemini?.model || 'gemini-2.0-flash-lite',
       generationConfig: {
         temperature: 0.9,
@@ -344,7 +345,7 @@ app.post('/enhance-content', [aiEnhancementLimiter, fieldSpecificLimiter], async
         maxOutputTokens: 500,
       },
     });
-    
+
     // Create field-specific prompts with randomization
     const getRandomPrompt = (field: string, content: string) => {
       const promptVariations = {
@@ -380,7 +381,7 @@ app.post('/enhance-content', [aiEnhancementLimiter, fieldSpecificLimiter], async
     
     Output:`
         ],
-        
+
         jobDescription: [
           `First, validate if this content is actually a job description. If it's not related to work experience, job responsibilities, or professional achievements, respond with "INVALID_CONTENT: This does not appear to be a job description. Please enter your actual work experience, job responsibilities, or professional achievements."
     
@@ -413,7 +414,7 @@ app.post('/enhance-content', [aiEnhancementLimiter, fieldSpecificLimiter], async
     
     Output:`
         ],
-        
+
         skills: [
           `First, validate if this content is actually a skill list. If it's not related to technical skills, programming languages, tools, or professional competencies, respond with "INVALID_CONTENT: This does not appear to be a skill list. Please enter your actual technical skills, programming languages, tools, or professional competencies."
     
@@ -446,7 +447,7 @@ app.post('/enhance-content', [aiEnhancementLimiter, fieldSpecificLimiter], async
     
     Output:`
         ],
-        
+
         customSection: [
           `First, validate if this content is actually relevant to a resume section. If it's not related to professional experience, projects, achievements, or relevant information, respond with "INVALID_CONTENT: This does not appear to be relevant resume content. Please enter your actual professional experience, projects, achievements, or relevant information."
     
@@ -480,13 +481,13 @@ app.post('/enhance-content', [aiEnhancementLimiter, fieldSpecificLimiter], async
     Output:`
         ]
       };
-      
+
       const variations = promptVariations[field as keyof typeof promptVariations];
       if (variations) {
         const randomIndex = Math.floor(Math.random() * variations.length);
         return variations[randomIndex];
       }
-      
+
       // Fallback to original prompts for other fields
       const fallbackPrompts = {
         jobTitle: `Suggest 3–5 optimized professional job titles similar to the given one. 
@@ -504,12 +505,12 @@ app.post('/enhance-content', [aiEnhancementLimiter, fieldSpecificLimiter], async
     
     Output:`
       };
-      
+
       return fallbackPrompts[field as keyof typeof fallbackPrompts] || fallbackPrompts.jobTitle;
     };
-    
+
     const prompt = getRandomPrompt(field, content);
-    
+
     // Add instructions to avoid rejected responses
     let avoidInstructions = '';
     if (rejectedResponses && rejectedResponses.length > 0) {
@@ -520,7 +521,7 @@ ${rejectedResponses.map((response: string, index: number) => `${index + 1}. "${r
 
 Generate a completely different and unique enhancement that is not similar to any of the above.`;
     }
-    
+
     // Add additional randomization instructions
     const randomInstructions = [
       'Focus on improving language and clarity.',
@@ -530,32 +531,32 @@ Generate a completely different and unique enhancement that is not similar to an
       'Improve readability and flow.',
       'Focus on making content more impactful.'
     ];
-    
+
     const randomInstruction = randomInstructions[Math.floor(Math.random() * randomInstructions.length)];
     const additionalRandomization = `
 
 ADDITIONAL INSTRUCTION: ${randomInstruction}`;
-    
+
     const enhancedPrompt = `You are a resume enhancement assistant. Your job is to IMPROVE and ENHANCE the existing content, not replace it entirely. Keep the same core information and meaning, but make it more professional, clear, and impactful. Always provide direct, concise responses without explanations, options, or markdown formatting. Return only the enhanced content.
 
 ${prompt}${avoidInstructions}${additionalRandomization}`;
-    
+
     const result = await model.generateContent(enhancedPrompt);
     const response = await result.response;
     let enhancedContent = response.text().trim();
-    
+
     if (!enhancedContent) {
       res.status(500).json({ error: 'AI returned empty response' });
       return;
     }
-    
+
     // Check if AI returned an invalid content response
     if (enhancedContent.startsWith('INVALID_CONTENT:')) {
       const errorMessage = enhancedContent.replace('INVALID_CONTENT:', '').trim();
       res.status(400).json({ error: errorMessage });
       return;
     }
-    
+
     // Clean up the response - remove any markdown formatting or extra text
     enhancedContent = enhancedContent
       .replace(/^Enhanced:\s*/i, '')
@@ -567,13 +568,13 @@ ${prompt}${avoidInstructions}${additionalRandomization}`;
       .replace(/^[-*]\s*/gm, '') // Remove bullet points at start of lines
       .replace(/\n{3,}/g, '\n\n') // Remove excessive line breaks
       .trim();
-    
-    res.status(200).json({ 
+
+    res.status(200).json({
       enhancedContent,
       originalContent: content,
       field
     });
-    
+
   } catch (error) {
     console.error('AI enhancement error:', error);
     res.status(500).json({ error: 'Failed to enhance content' });
@@ -584,49 +585,49 @@ ${prompt}${avoidInstructions}${additionalRandomization}`;
 app.post('/generate-resume', [aiEnhancementLimiter], async (req: Request, res: Response): Promise<void> => {
   try {
     const { brief, context } = req.body;
-    
+
     // Security: Validate request signature (mandatory)
     const SHARED_SECRET = process.env.SHARED_SECRET;
     if (!SHARED_SECRET) {
       res.status(500).json({ error: 'Server configuration error' });
       return;
     }
-    
+
     const { signature } = req.body;
     if (!signature) {
       res.status(403).json({ error: 'Request signature required' });
       return;
     }
-    
+
     const expectedSignature = CryptoJS.HmacSHA256(JSON.stringify({ brief, type: 'generate-resume' }), SHARED_SECRET).toString();
     if (expectedSignature !== signature) {
       res.status(403).json({ error: 'Invalid request signature' });
       return;
     }
-    
+
     if (!brief || typeof brief !== 'string') {
       res.status(400).json({ error: 'Brief description is required' });
       return;
     }
-    
+
     if (brief.length < 50) {
       res.status(400).json({ error: 'Brief description too short (minimum 50 characters)' });
       return;
     }
-    
+
     if (brief.length > 2000) {
       res.status(400).json({ error: 'Brief description too long (maximum 2000 characters)' });
       return;
     }
-    
+
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY || functions.config().gemini?.api_key;
     if (!GEMINI_API_KEY) {
       res.status(500).json({ error: 'AI service not configured' });
       return;
     }
-    
+
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: process.env.GEMINI_MODEL || functions.config().gemini?.model || 'gemini-2.0-flash-lite',
       generationConfig: {
         temperature: 0.1,
@@ -635,7 +636,7 @@ app.post('/generate-resume', [aiEnhancementLimiter], async (req: Request, res: R
         maxOutputTokens: 3000,
       },
     });
-    
+
     const prompt = `You are a professional resume generator. 
 
 FIRST: Extract and convert ALL dates from the brief to YYYY-MM format.
@@ -781,79 +782,131 @@ If the brief is valid and contains professional information, return ONLY a valid
   ],
   "selectedTemplate": "modern-clean"
 }`;
-    
+
     const result = await model.generateContent(prompt);
     const response = await result.response;
     let generatedContent = response.text().trim();
-    
-    if (!generatedContent) {
-      res.status(500).json({ error: 'AI returned empty response' });
-      return;
-    }
-    
-    // Check if AI returned an INVALID_CONTENT response
-    if (generatedContent.includes('INVALID_CONTENT:')) {
-      const errorMessage = generatedContent.replace('INVALID_CONTENT:', '').trim();
-      res.status(400).json({ error: errorMessage });
-      return;
-    }
-    
+
+    // ... imports -- REMOVED
+    // ... existing code -- REMOVED
+
+    // EXPERIMENTAL: AI Agent Chat Endpoint
+    app.post('/agent/chat', async (req: Request, res: Response): Promise<void> => {
+      try {
+        const { sessionId, prompt } = req.body;
+
+        // Quick validation
+        if (!sessionId || !prompt) {
+          res.status(400).json({ error: 'Session ID and prompt are required.' });
+          return;
+        }
+
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY || functions.config().gemini?.api_key;
+        if (!GEMINI_API_KEY) {
+          res.status(500).json({ error: 'AI service not configured' });
+          return;
+        }
+
+        // 1. Generate/Update Code
+        const { code, message } = await generateOrUpdateResume(sessionId, prompt, GEMINI_API_KEY);
+
+        // 2. Render to HTML then PDF
+        const html = compileAndRender(code);
+
+        // Reuse existing Puppeteer logic (simplified here for brevity, ideally refactor pdf generation to a shared function)
+        const browser = await puppeteer.launch({
+          args: [
+            ...chromium.args,
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+          ],
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath,
+          headless: chromium.headless,
+          ignoreHTTPSErrors: true,
+        });
+
+        const page = await browser.newPage();
+        await page.setContent(html, { waitUntil: 'networkidle0' });
+        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+        await browser.close();
+
+        const base64Pdf = Buffer.from(pdfBuffer).toString('base64');
+
+        res.status(200).json({
+          message,
+          code, // Return the code so frontend can show it in the "Code Editor" view
+          pdf: base64Pdf
+        });
+
+      } catch (error: any) {
+        console.error('Agent Endpoint Error:', error);
+        res.status(500).json({ error: error.message || 'Internal Agent Error' });
+      }
+    });
+
+
     // Check if the entire response is just a JSON object with error message in summary
     if (generatedContent.includes('"summary":') && generatedContent.includes('not suitable for a professional resume')) {
-      res.status(400).json({ 
-        error: 'The provided information is not suitable for a professional resume. Please provide only professional work experience, education, skills, and achievements.' 
+      res.status(400).json({
+        error: 'The provided information is not suitable for a professional resume. Please provide only professional work experience, education, skills, and achievements.'
       });
       return;
     }
-    
+
     // Check if the response contains markdown-wrapped JSON with error message
     if (generatedContent.includes('```json') && generatedContent.includes('not suitable for a professional resume')) {
-      res.status(400).json({ 
-        error: 'The provided information is not suitable for a professional resume. Please provide only professional work experience, education, skills, and achievements.' 
+      res.status(400).json({
+        error: 'The provided information is not suitable for a professional resume. Please provide only professional work experience, education, skills, and achievements.'
       });
       return;
     }
-    
+
     // Check if the response contains any JSON structure with error message in summary (before parsing)
     if (generatedContent.includes('"summary"') && generatedContent.includes('not suitable for a professional resume')) {
-      res.status(400).json({ 
-        error: 'The provided information is not suitable for a professional resume. Please provide only professional work experience, education, skills, and achievements.' 
+      res.status(400).json({
+        error: 'The provided information is not suitable for a professional resume. Please provide only professional work experience, education, skills, and achievements.'
       });
       return;
     }
-    
+
     // Clean up the response - remove any markdown formatting
     generatedContent = generatedContent
       .replace(/```json\s*/g, '')
       .replace(/```\s*$/g, '')
       .trim();
-    
+
     try {
       const resumeData = JSON.parse(generatedContent);
-      
+
       // Check if the summary contains an error message
       if (resumeData.summary && resumeData.summary.includes('not suitable for a professional resume')) {
-        res.status(400).json({ 
-          error: 'The provided information is not suitable for a professional resume. Please provide only professional work experience, education, skills, and achievements.' 
+        res.status(400).json({
+          error: 'The provided information is not suitable for a professional resume. Please provide only professional work experience, education, skills, and achievements.'
         });
         return;
       }
-      
+
       // Check if the entire response is just an error message (all fields empty except summary with error)
-      const hasOnlyErrorSummary = resumeData.summary && 
+      const hasOnlyErrorSummary = resumeData.summary &&
         resumeData.summary.includes('not suitable for a professional resume') &&
         !resumeData.firstName && !resumeData.lastName && !resumeData.email && !resumeData.phone &&
         (!resumeData.experiences || resumeData.experiences.length === 0) &&
         (!resumeData.education || resumeData.education.length === 0) &&
         (!resumeData.skills || resumeData.skills.length === 0);
-      
+
       if (hasOnlyErrorSummary) {
-        res.status(400).json({ 
-          error: 'The provided information is not suitable for a professional resume. Please provide only professional work experience, education, skills, and achievements.' 
+        res.status(400).json({
+          error: 'The provided information is not suitable for a professional resume. Please provide only professional work experience, education, skills, and achievements.'
         });
         return;
       }
-      
+
       // Validate the structure
       const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode', 'summary', 'experiences', 'education', 'skills', 'certifications', 'languages', 'customSections', 'selectedTemplate'];
       for (const field of requiredFields) {
@@ -862,7 +915,7 @@ If the brief is valid and contains professional information, return ONLY a valid
           return;
         }
       }
-      
+
       // CRITICAL: Ensure no fake personal information is generated
       const cleanPersonalInfo = () => {
         const personalFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode', 'linkedIn', 'website'];
@@ -876,59 +929,59 @@ If the brief is valid and contains professional information, return ONLY a valid
           }
         });
       };
-      
+
       // Clean up personal information (but keep dates intact)
       cleanPersonalInfo();
-      
+
       // Validate that the generated content is meaningful and not gibberish
       const isMeaningfulContent = (text: string): boolean => {
         if (!text || typeof text !== 'string') return false;
-        
+
         // Check if the text is too short to be meaningful
         const isTooShort = text.length < 10;
         if (isTooShort) return false;
-        
+
         // Check for completely random/gibberish patterns
         // Only flag as gibberish if it has excessive random character sequences
         const totalGibberishPattern = /^[a-z0-9]{1,3}[\s\n]*[a-z0-9]{1,3}[\s\n]*[a-z0-9]{1,3}$/gi;
         const isCompleteGibberish = totalGibberishPattern.test(text.trim());
-        
+
         // Check if the text has some meaningful words (at least 3 characters)
         const words = text.split(/\s+/).filter(word => word.length >= 3 && /^[a-zA-Z]+$/.test(word));
         const hasEnoughMeaningfulWords = words.length >= 2;
-        
+
         // Check for excessive numbers without context (like "123 456 789" with no words)
         const numbersOnly = /^[\d\s\-\+\(\)\.]+$/.test(text.trim());
-        
+
         return !isCompleteGibberish && hasEnoughMeaningfulWords && !numbersOnly;
       };
-      
+
       // Check if the summary and experience descriptions are meaningful
       if (resumeData.summary && !isMeaningfulContent(resumeData.summary)) {
-        res.status(400).json({ 
-          error: 'The provided information appears to be nonsensical or not suitable for a resume. Please provide meaningful professional information.' 
+        res.status(400).json({
+          error: 'The provided information appears to be nonsensical or not suitable for a resume. Please provide meaningful professional information.'
         });
         return;
       }
-      
+
       if (resumeData.experiences && Array.isArray(resumeData.experiences)) {
         for (const exp of resumeData.experiences) {
           if (exp.description && !isMeaningfulContent(exp.description)) {
-            res.status(400).json({ 
-              error: 'The provided information appears to be nonsensical or not suitable for a resume. Please provide meaningful professional information.' 
+            res.status(400).json({
+              error: 'The provided information appears to be nonsensical or not suitable for a resume. Please provide meaningful professional information.'
             });
             return;
           }
         }
       }
-      
+
       res.status(200).json(resumeData);
-      
+
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
       res.status(500).json({ error: 'Failed to parse generated data' });
     }
-    
+
   } catch (error) {
     console.error('AI resume generation error:', error);
     res.status(500).json({ error: 'Failed to generate resume data' });

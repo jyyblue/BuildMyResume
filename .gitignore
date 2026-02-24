@@ -32,6 +32,11 @@ dist
 dist-ssr
 *.local
 
+# NestJS API (api/)
+api/dist/
+api/node_modules/
+api/.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

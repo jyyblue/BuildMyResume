@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { FileText, Shield, Zap, Github, ArrowRight, CheckCircle, Star, Play, Monitor, Smartphone, Users, GitFork, Heart, Sparkles, Bot, Wand2 } from "lucide-react";
+import { FileText, Github, ArrowRight, CheckCircle, Sparkles, Edit3, MessageSquare, LayoutTemplate, MousePointerClick, Lock, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AppNavigation } from "@/components/AppNavigation";
 import Footer from "@/components/Footer";
@@ -14,589 +14,392 @@ import ResumeCounter from "@/components/ResumeCounter";
 
 const Home = () => {
   const [isMobile, setIsMobile] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    const checkIfMobile = () => setIsMobile(window.innerWidth < 768);
+
     checkIfMobile();
     window.addEventListener('resize', checkIfMobile);
-    
-    return () => window.removeEventListener('resize', checkIfMobile);
+    window.addEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
-  
+
   const features = [
     {
-      icon: <Shield className="h-8 w-8" />,
-      title: "Privacy First",
-      description: "End-to-end encrypted. No accounts. Your data stays yours — always."
+      icon: <MessageSquare className="h-6 w-6 text-blue-500" />,
+      title: "Conversational AI",
+      description: "Chat with our intelligent assistant to build your resume naturally, section by section.",
+      className: "md:col-span-2 lg:col-span-1"
     },
     {
-      icon: <FileText className="h-8 w-8" />,
+      icon: <MousePointerClick className="h-6 w-6 text-indigo-500" />,
+      title: "Direct Visual Editing",
+      description: "Click anywhere on the preview to edit text, adjust margins, and fine-tune your layout instantly.",
+      className: "md:col-span-2 lg:col-span-1"
+    },
+    {
+      icon: <FileText className="h-6 w-6 text-pink-500" />,
+      title: "Smart PDF Import",
+      description: "Upload your old resume and let our AI extract, parse, and perfectly format your data.",
+      className: "md:col-span-2 lg:col-span-1"
+    },
+    {
+      icon: <LayoutTemplate className="h-6 w-6 text-orange-500" />,
       title: "Professional Templates",
-      description: "ATS-friendly templates designed to make you stand out in any industry."
+      description: "Stand out with ATS-optimized, beautifully designed templates that recruiters love.",
+      className: "md:col-span-3 lg:col-span-1"
     },
     {
-      icon: <Zap className="h-8 w-8" />,
-      title: "AI-Powered Enhancement",
-      description: "Intelligent content enhancement with advanced AI for professional, ATS-friendly resumes."
-    },
-    {
-      icon: <Wand2 className="h-8 w-8" />,
-      title: "AI Resume Generation",
-      description: "Create complete resumes from a simple description. AI generates all sections including experience, education, skills, and more."
-    },
-    {
-      icon: <Github className="h-8 w-8" />,
-      title: "Open Source",
-      description: "MIT licensed. Built for transparency, collaboration, and the community."
+      icon: <Lock className="h-6 w-6 text-green-500" />,
+      title: "Privacy First",
+      description: "End-to-end encrypted. No accounts required. Your data never leaves your browser.",
+      className: "md:col-span-3 lg:col-span-1"
     }
   ];
-  
 
   const benefits = [
     "No sign-up required",
     "ATS-friendly templates",
-    "AI-powered enhancement",
-    "AI resume generation",
+    "Multiple export formats",
     "End-to-end encrypted",
+    "Open source",
     "Free forever"
   ];
 
   return (
     <>
-      <SEO 
-        title="Open Source Resume Builder - Create Professional ATS-Friendly Resumes"
-        description="Build professional, ATS-friendly resumes with our privacy-first resume builder. Features AI-powered enhancement, multiple templates, and no sign-up required. 100% free, end-to-end encrypted, and open source."
-        keywords="resume builder, open source resume builder, ATS friendly resume, professional resume templates, CV builder, job application, career tools, resume maker, online resume builder, AI resume enhancement, privacy resume builder"
+      <SEO
+        title="Open Source Resume Builder - AI & Classic Editor"
+        description="Build professional, ATS-friendly resumes with our privacy-first builder. Choose between our conversational AI assistant or granular classic editor. 100% free and open source."
+        keywords="resume builder, open source resume builder, ATS friendly resume, professional resume templates, CV builder, AI resume builder, conversational resume, privacy resume builder"
         url={`${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}`}
         image={`${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/og-image.png`}
       />
-      
-      <div className="min-h-screen bg-gradient-subtle">
-              {/* Navigation */}
-      <AppNavigation showGitHubStar={true} />
 
-        {/* Hero Section */}
-        <main className="container mx-auto px-4 py-16">
-          <div className="text-center space-y-8">
-            <div className="space-y-4">
-              <Badge variant="secondary" className="text-sm px-4 py-2">
-                🚀 Open Source Resume Builder
-              </Badge>
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-                Build Your Perfect Resume
-                <span className="block bg-gradient-primary bg-clip-text text-transparent">
-                  In Minutes, Not Hours
+      <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary/20">
+
+        {/* Navigation */}
+        <div className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-background/80 backdrop-blur-md border-b' : 'bg-transparent'}`}>
+          <AppNavigation showGitHubStar={true} />
+        </div>
+
+        {/* Dual-Track Hero Section */}
+        <section className="relative pt-24 pb-12 lg:pt-32 lg:pb-16 overflow-hidden">
+          {/* Rich Background Elements */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none">
+            <div className="absolute top-20 left-10 w-96 h-96 bg-blue-500/20 rounded-full blur-[120px] animate-pulse-soft" />
+            <div className="absolute top-40 right-10 w-[30rem] h-[30rem] bg-indigo-500/20 rounded-full blur-[120px] animate-pulse-soft delay-1000" />
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[40rem] h-[20rem] bg-primary/10 rounded-full blur-[100px]" />
+          </div>
+
+          <div className="container relative mx-auto px-4 text-center z-10">
+            <div className="space-y-8 animate-fade-in">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/80 backdrop-blur-md border border-border/50 text-sm font-medium animate-slide-up shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
+                Open Source Resume Builder
+              </div>
+
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-tight max-w-5xl mx-auto">
+                Modern Resumes, <br className="hidden md:block" />
+                <span className="text-gradient">Built Your Way.</span>
               </h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              AI-powered, open-source resume builder for professional, ATS-optimized resumes.
+
+              <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                Generate a tailored resume through an interactive chat, or take full control with our pixel-perfect live editor. Always free, private, and open-source.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center pt-8">
+                <Link to="/ai-builder" className="w-full sm:w-auto group">
+                  <Button size="xl" className="w-full sm:w-auto rounded-full shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:shadow-[0_0_40px_rgba(59,130,246,0.6)] transition-all duration-500 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border-none">
+                    <Sparkles className="mr-2 h-5 w-5 animate-pulse" />
+                    Try AI Builder
+                  </Button>
+                </Link>
+                <Link to="/editor" className="w-full sm:w-auto group">
+                  <Button variant="outline" size="xl" className="w-full sm:w-auto rounded-full border-2 border-primary/20 hover:border-primary/50 bg-background/50 backdrop-blur-sm transition-all duration-300">
+                    <Edit3 className="mr-2 h-5 w-5" />
+                    Use Classic Editor
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="pt-8 flex flex-col items-center justify-center gap-6 animate-fade-in delay-200">
+                <ResumeCounter />
+                <GitHubStats className="text-center" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Choose Your Path Showcase */}
+        <section className="py-24 relative overflow-hidden bg-secondary/30 backdrop-blur-sm border-y">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+              <h2 className="text-3xl md:text-5xl font-bold">Two Powerful Ways to Build</h2>
+              <p className="text-xl text-muted-foreground">
+                Choose the workflow that matches your style. Both export to perfect, ATS-friendly PDFs.
               </p>
             </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
-                <Link to="/editor" className="w-full sm:w-auto">
-                  <Button size="lg" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 min-h-[48px] shadow-elegant">
-                    Start Building
-                    <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
-                  </Button>
-                </Link>
-                <Link to="/templates" className="w-full sm:w-auto">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 min-h-[48px]">
-                    View Templates
-                  </Button>
-                </Link>
-              </div>
-              
-              {/* Resume Counter - Proper spacing */}
-              <div className="flex justify-center mt-2 mb-2 sm:mt-4 sm:mb-6">
-                <ResumeCounter />
-              </div>
-          </div>
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
 
-          {/* Benefits Grid - Proper spacing */}
-          <div className="text-center mt-6 sm:mt-8">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
-              {benefits.map((benefit, index) => (
-                <div key={index} className="flex justify-center">
-                  <div className="flex items-start md:items-center space-x-2 text-sm max-w-[120px] md:max-w-none">
-                    <CheckCircle className="h-4 w-4 text-success mt-0.5 md:mt-0 flex-shrink-0" />
-                    <span className="text-muted-foreground text-center leading-tight md:leading-normal">{benefit}</span>
+              {/* Path 1: AI Builder */}
+              <Card className="relative overflow-hidden group border-primary/20 bg-background/50 backdrop-blur-xl shadow-2xl hover:shadow-glow transition-all duration-500 flex flex-col">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <CardHeader className="text-center pb-2 relative z-10 space-y-4 flex-shrink-0">
+                  <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                    <Sparkles className="h-8 w-8 text-white" />
                   </div>
+                  <div>
+                    <CardTitle className="text-2xl mb-2">The AI Assistant</CardTitle>
+                    <p className="text-muted-foreground">Upload an old PDF or just start chatting. The AI builds your ATS-optimized resume in real-time.</p>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6 relative z-10 flex-grow flex flex-col justify-between">
+                  <div className="rounded-xl border bg-card overflow-hidden shadow-inner flex flex-col h-[280px]">
+                    {/* Mock AI UI */}
+                    <div className="h-8 border-b bg-muted/30 flex items-center px-3 gap-2 flex-shrink-0">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                      <span className="text-[10px] font-medium text-muted-foreground ml-2 uppercase tracking-wider">AI Builder Session</span>
+                    </div>
+                    <div className="p-4 space-y-4 bg-background flex-grow">
+                      <div className="flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <User className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="bg-muted p-3 rounded-2xl rounded-tl-sm text-sm">
+                          Make my experience sound more professional for a Senior Developer role.
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <Sparkles className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="bg-primary/10 border border-primary/20 p-3 rounded-2xl rounded-tl-sm text-sm">
+                          <p className="font-semibold text-primary mb-1">Updated Work Experience</p>
+                          <ul className="list-disc pl-4 space-y-1 text-xs text-muted-foreground">
+                            <li>Architected highly scalable microservices handling 1M+ requests</li>
+                            <li>Mentored junior engineers and led agile development cycles</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-8 text-center flex-shrink-0">
+                    <Link to="/ai-builder">
+                      <Button size="lg" className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-14 text-[1rem]">
+                        Start Chatting
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Path 2: Classic Editor */}
+              <Card className="relative overflow-hidden group border-border bg-background/50 backdrop-blur-xl shadow-xl hover:shadow-2xl hover:border-primary/30 transition-all duration-500 flex flex-col">
+                <div className="absolute inset-0 bg-gradient-to-bl from-cyan-500/5 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <CardHeader className="text-center pb-2 relative z-10 space-y-4 flex-shrink-0">
+                  <div className="mx-auto w-16 h-16 rounded-2xl bg-secondary border flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Edit3 className="h-8 w-8 text-foreground" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl mb-2">The Classic Editor</CardTitle>
+                    <p className="text-muted-foreground">Prefer manual control? Fill out structured forms and edit directly on the live visual preview.</p>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6 relative z-10 flex-grow flex flex-col justify-between">
+                  <div className="rounded-xl border bg-card overflow-hidden shadow-inner flex h-[280px]">
+                    {/* Mock Editor UI */}
+                    <div className="w-1/3 border-r bg-muted/10 p-3 space-y-3">
+                      <div className="h-2 w-1/2 bg-muted-foreground/30 rounded" />
+                      <div className="h-6 w-full bg-background border rounded" />
+                      <div className="h-2 w-1/3 bg-muted-foreground/30 rounded pt-2" />
+                      <div className="h-6 w-full bg-background border rounded" />
+                      <div className="h-2 w-2/3 bg-muted-foreground/30 rounded pt-2" />
+                      <div className="h-16 w-full bg-background border rounded" />
+                    </div>
+                    <div className="w-2/3 bg-white p-4 relative">
+                      {/* Fake Resume Preview */}
+                      <div className="space-y-4">
+                        <div className="text-center border-b border-gray-200 pb-3">
+                          <div className="h-4 w-1/3 bg-gray-800 rounded mx-auto mb-2" />
+                          <div className="h-2 w-1/2 bg-gray-400 rounded mx-auto" />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="h-2 w-1/4 bg-blue-600 rounded" />
+                          <div className="h-2 w-full bg-gray-300 rounded" />
+                          <div className="h-2 w-5/6 bg-gray-300 rounded" />
+                          <div className="h-2 w-4/6 bg-gray-300 rounded" />
+                        </div>
+                        <div className="space-y-2 pt-2">
+                          <div className="h-2 w-1/4 bg-blue-600 rounded" />
+                          <div className="h-2 w-[90%] bg-gray-300 rounded" />
+                          <div className="h-2 w-[85%] bg-gray-300 rounded" />
+                        </div>
+                      </div>
+
+                      {/* Cursor Mock */}
+                      <div className="absolute top-[140px] right-[80px] w-6 h-6 text-blue-500 animate-bounce -ml-3 -mt-3 pointer-events-none drop-shadow-md">
+                        <svg viewBox="0 0 24 24" fill="currentColor" stroke="white" strokeWidth="1"><path d="M7 2l12 11.2l-5.8.5l3.3 7.3l-2.2.9l-3.2-7.4l-4.4 4.5z" /></svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-8 text-center flex-shrink-0">
+                    <Link to="/editor">
+                      <Button variant="outline" size="lg" className="w-full rounded-xl border-2 hover:bg-secondary h-14 text-[1rem]">
+                        Open Editor
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+
+            </div>
+          </div>
+        </section>
+
+        {/* Benefits Scroll */}
+        <section className="bg-background py-8 border-b">
+          <div className="container mx-auto px-4 overflow-hidden">
+            <div className="flex flex-wrap justify-center gap-x-8 gap-y-4">
+              {benefits.map((benefit, index) => (
+                <div key={index} className="flex items-center gap-2 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  {benefit}
                 </div>
               ))}
             </div>
-
-            {/* GitHub Stats */}
-            <div className="flex justify-center pt-2 mt-4 sm:mt-8">
-              <GitHubStats className="text-center" />
-            </div>
           </div>
+        </section>
 
-          {/* Features Section */}
-          <section className="py-24">
-            <div className="text-center space-y-4 mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold">
-                Why Choose BuildMyResume?
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Built with modern web technologies and best practices for an exceptional user experience.
+        {/* Unified Feature Grid */}
+        <section className="py-24 relative">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+              <h2 className="text-3xl md:text-5xl font-bold">Everything You Need</h2>
+              <p className="text-xl text-muted-foreground">
+                Built with modern tech for a seamless, private, and powerful experience.
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {features.map((feature, index) => (
-                <Card key={index} className="text-center border-0 shadow-card hover:shadow-float transition-all duration-300">
+                <Card key={index} className={`border-0 shadow-lg bg-card/50 backdrop-blur-sm border border-border/50 hover:border-primary/50 transition-all duration-300 group ${feature.className || ''}`}>
                   <CardHeader>
-                    <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-4">
+                    <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                       {feature.icon}
                     </div>
                     <CardTitle className="text-xl">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-base leading-relaxed">
+                    <p className="text-muted-foreground leading-relaxed">
                       {feature.description}
-                    </CardDescription>
+                    </p>
                   </CardContent>
                 </Card>
               ))}
             </div>
-          </section>
+          </div>
+        </section>
 
-          {/* AI Resume Generation Showcase Section */}
-          <section className="py-16 sm:py-20 lg:py-24 relative overflow-hidden">
-            
-            <div className="relative">
-              <div className="text-center space-y-4 mb-16">
-                <Badge variant="secondary" className="text-sm px-4 py-2 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300">
-                  ✨ AI-Powered Innovation
-                </Badge>
-                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
-                  Create Your Resume
-                  <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                    With AI Magic
-                  </span>
-                </h2>
-                <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                  Simply describe your background and watch AI transform it into a complete, professional resume. 
-                  No more staring at blank forms - let artificial intelligence do the heavy lifting.
-                </p>
-              </div>
+        {/* Video Demo */}
+        <section className="py-24 container mx-auto px-4 border-t">
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+            <h2 className="text-3xl md:text-5xl font-bold">See It In Action</h2>
+            <p className="text-xl text-muted-foreground">
+              Watch how easy it is to create a professional resume.
+            </p>
+          </div>
 
-              <div className="max-w-6xl mx-auto">
-                {/* Main Showcase Card */}
-                <Card className="border-0 shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-indigo-500/5" />
-                  <CardContent className="p-8 lg:p-12 relative">
-                                         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-                       
-                       {/* Left Side - Input Example */}
-                       <div className="space-y-6">
-                         <div className="space-y-4">
-                           <div className="flex items-center gap-3">
-                             <div className="w-3 h-3 bg-red-500 rounded-full" />
-                             <div className="w-3 h-3 bg-yellow-500 rounded-full" />
-                             <div className="w-3 h-3 bg-green-500 rounded-full" />
-                             <span className="text-sm text-muted-foreground ml-2">AI Resume Creator</span>
-                           </div>
-                           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                             <p className="text-sm text-muted-foreground mb-2">Tell us about yourself:</p>
-                             <div className="space-y-2 text-sm">
-                               <div className="bg-white dark:bg-gray-700 rounded px-3 py-2 border border-gray-200 dark:border-gray-600">
-                                 <span className="text-blue-600 dark:text-blue-400">Software engineer</span> with 5 years experience in React and Node.js...
-                               </div>
-                               <div className="bg-white dark:bg-gray-700 rounded px-3 py-2 border border-gray-200 dark:border-gray-600">
-                                 Worked at <span className="text-green-600 dark:text-green-400">Google</span> and <span className="text-green-600 dark:text-green-400">Microsoft</span>...
-                               </div>
-                               <div className="bg-white dark:bg-gray-700 rounded px-3 py-2 border border-gray-200 dark:border-gray-600">
-                                 Master's degree in <span className="text-purple-600 dark:text-purple-400">Computer Science</span> from Stanford...
-                               </div>
-                             </div>
-                           </div>
-                         </div>
-                         
-                         <div className="flex items-center justify-center">
-                           <div className="relative">
-                             <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center animate-pulse">
-                               <Wand2 className="h-8 w-8 text-white" />
-                             </div>
-                             <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/20 to-purple-600/20 rounded-full blur-lg animate-pulse" />
-                           </div>
-                         </div>
-                       </div>
-
-                       {/* Right Side - Output Preview */}
-                       <div className="space-y-6">
-                         <div className="space-y-4">
-                           <div className="flex items-center gap-3">
-                             <div className="w-3 h-3 bg-red-500 rounded-full" />
-                             <div className="w-3 h-3 bg-yellow-500 rounded-full" />
-                             <div className="w-3 h-3 bg-green-500 rounded-full" />
-                             <span className="text-sm text-muted-foreground ml-2">Generated Resume</span>
-                           </div>
-                           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-lg">
-                            <div className="space-y-3">
-                              <div className="border-b border-gray-200 dark:border-gray-600 pb-2">
-                                <h3 className="font-semibold text-lg">John Doe</h3>
-                                <p className="text-sm text-muted-foreground">Software Engineer</p>
-                              </div>
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                                  <span className="text-sm font-medium">Experience</span>
-                                </div>
-                                <div className="ml-4 space-y-1">
-                                  <p className="text-sm"><strong>Senior Software Engineer</strong> at Google</p>
-                                  <p className="text-xs text-muted-foreground">2020 - Present</p>
-                                </div>
-                                <div className="ml-4 space-y-1">
-                                  <p className="text-sm"><strong>Software Engineer</strong> at Microsoft</p>
-                                  <p className="text-xs text-muted-foreground">2018 - 2020</p>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full" />
-                                  <span className="text-sm font-medium">Education</span>
-                                </div>
-                                <div className="ml-4">
-                                  <p className="text-sm"><strong>Master's in Computer Science</strong></p>
-                                  <p className="text-xs text-muted-foreground">Stanford University, 2018</p>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-purple-500 rounded-full" />
-                                  <span className="text-sm font-medium">Skills</span>
-                                </div>
-                                <div className="ml-4 flex flex-wrap gap-1">
-                                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">React</span>
-                                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">Node.js</span>
-                                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">TypeScript</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Feature Highlights */}
-                    <div className="mt-12 grid md:grid-cols-3 gap-6">
-                      <div className="text-center space-y-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl flex items-center justify-center mx-auto">
-                          <Sparkles className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <h4 className="font-semibold">Complete Generation</h4>
-                        <p className="text-sm text-muted-foreground">AI creates all sections including experience, education, skills, and custom content</p>
-                      </div>
-                      <div className="text-center space-y-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl flex items-center justify-center mx-auto">
-                          <Shield className="h-6 w-6 text-purple-600" />
-                        </div>
-                        <h4 className="font-semibold">Privacy First</h4>
-                        <p className="text-sm text-muted-foreground">Your data is processed securely with end-to-end encryption and never stored</p>
-                      </div>
-                      <div className="text-center space-y-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl flex items-center justify-center mx-auto">
-                          <CheckCircle className="h-6 w-6 text-green-600" />
-                        </div>
-                        <h4 className="font-semibold">ATS Optimized</h4>
-                        <p className="text-sm text-muted-foreground">Generated content is optimized for Applicant Tracking Systems</p>
-                      </div>
-                    </div>
-
-                    {/* CTA Button */}
-                    <div className="mt-8 text-center">
-                      <Link to="/editor">
-                        <Button size="lg" className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300">
-                          <Wand2 className="mr-2 h-5 w-5" />
-                          Try AI Resume Generation
-                          <ArrowRight className="ml-2 h-5 w-5" />
-                        </Button>
-                      </Link>
-                      <p className="text-sm text-muted-foreground mt-3">
-                        No sign-up required • 100% free • Instant results
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Floating Elements for Visual Appeal */}
-                <div className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-xl animate-pulse" />
-                <div className="absolute bottom-20 right-10 w-32 h-32 bg-gradient-to-r from-purple-400/20 to-indigo-400/20 rounded-full blur-xl animate-pulse delay-1000" />
-                <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-gradient-to-r from-indigo-400/20 to-blue-400/20 rounded-full blur-lg animate-pulse delay-500" />
-              </div>
+          <Card className="max-w-5xl mx-auto border-0 shadow-2xl overflow-hidden rounded-2xl bg-black ring-1 ring-white/10">
+            <div className="relative aspect-video">
+              <iframe
+                src="https://www.youtube.com/embed/Q_FjVnEu6Es?rel=0&modestbranding=1&showinfo=0"
+                title="BuildMyResume Demo"
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
             </div>
-          </section>
+          </Card>
+        </section>
 
-          {/* AI Features Section */}
-          <section className="py-12 sm:py-16 lg:py-24">
-            <div className="text-center space-y-4 mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold">
-                Powered by Advanced AI
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Enhance your resume creation experience with intelligent AI features.
+        {/* FAQ Section */}
+        <section className="py-24 bg-secondary/20">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <div className="text-center mb-16 space-y-4">
+              <h2 className="text-3xl md:text-5xl font-bold">Common Questions</h2>
+              <p className="text-xl text-muted-foreground">Everything you need to know.</p>
+            </div>
+
+            <Accordion type="single" collapsible className="w-full space-y-4">
+              {faqItems.map((item, index) => (
+                <AccordionItem key={index} value={`item-${index}`} className="border rounded-lg bg-card px-4 shadow-sm">
+                  <AccordionTrigger className="text-left hover:no-underline py-4 text-lg font-medium">
+                    {item.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground text-base pb-4">
+                    {item.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className="py-24 relative overflow-hidden">
+          <div className="absolute inset-0 bg-primary/5" />
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[128px]" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[128px]" />
+
+          <div className="container relative mx-auto px-4 text-center">
+            <Card className="max-w-4xl mx-auto bg-background/50 backdrop-blur-md border-primary/20 shadow-2xl p-8 md:p-12 overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-500" />
+
+              <h2 className="text-3xl md:text-5xl font-bold mb-6">Ready to Build Your Career?</h2>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+                Join thousands of professionals who have built their resumes with us. Open source, privacy-first, and always free.
               </p>
-            </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-              <Card className="border-0 shadow-card hover:shadow-float transition-all duration-300 text-center">
-                <CardHeader className="text-center">
-                  <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-2xl flex items-center justify-center text-purple-600 mb-4">
-                    <Wand2 className="h-8 w-8" />
-                  </div>
-                  <CardTitle className="text-xl">AI Resume Generation</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <CardDescription className="text-base leading-relaxed">
-                    Simply describe your background and let AI create your entire resume with experience, education, skills, and custom sections.
-                  </CardDescription>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-card hover:shadow-float transition-all duration-300 text-center">
-                <CardHeader className="text-center">
-                  <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-2xl flex items-center justify-center text-green-600 mb-4">
-                    <Sparkles className="h-8 w-8" />
-                  </div>
-                  <CardTitle className="text-xl">Smart Enhancement</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <CardDescription className="text-base leading-relaxed">
-                    Enhance your professional summary, job descriptions, and custom content with AI-powered suggestions that make your resume more compelling and ATS-friendly.
-                  </CardDescription>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-card hover:shadow-float transition-all duration-300 text-center">
-                <CardHeader className="text-center">
-                  <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-2xl flex items-center justify-center text-orange-600 mb-4">
-                    <Shield className="h-8 w-8" />
-                  </div>
-                  <CardTitle className="text-xl">Privacy & Security</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <CardDescription className="text-base leading-relaxed">
-                    All AI processing is done securely with end-to-end encryption. Your content is validated and never stored. Complete privacy protection.
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="text-center">
-              <Link to="/editor">
-                <Button size="lg" className="text-base sm:text-lg px-8 py-6 min-h-[48px] bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
-                  <Wand2 className="mr-2 h-5 w-5" />
-                  Try AI Features
-                  <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
-                </Button>
-              </Link>
-            </div>
-          </section>
-
-          {/* How It Works Video Section */}
-          <section className="py-12 sm:py-16 lg:py-24">
-            <div className="text-center space-y-4 mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold">
-                How Does It Work?
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Watch how simple it is to create a professional resume in just a few minutes.
-              </p>
-            </div>
-
-            <Card className="max-w-4xl mx-auto border-0 shadow-elegant overflow-hidden">
-              <CardContent className="p-0">
-                <div className="relative aspect-video bg-gradient-hero rounded-lg overflow-hidden">
-                  <iframe
-                    src="https://www.youtube.com/embed/Q_FjVnEu6Es?rel=0&modestbranding=1&showinfo=0"
-                    title="BuildMyResume Demo - How to Create a Professional Resume"
-                    className="absolute inset-0 w-full h-full rounded-lg"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
-                  {/* Fallback overlay for loading state */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-hero rounded-lg" style={{ zIndex: -1 }}>
-                    <div className="text-center text-white">
-                      <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6 hover:bg-white/30 transition-colors">
-                        <Play className="h-8 w-8 ml-1" />
-                      </div>
-                      <p className="text-lg text-white/90 mb-4">
-                        {isMobile 
-                          ? "See how easy it is to build a resume on your phone" 
-                          : "Watch the full experience in action"
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link to="/ai-builder">
+                  <Button size="lg" className="w-full sm:w-auto h-14 px-8 text-lg rounded-full bg-primary hover:bg-primary/90 shadow-lg">
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    Start with AI
+                  </Button>
+                </Link>
+                <Link to="/editor">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto h-14 px-8 text-lg rounded-full bg-background hover:bg-secondary">
+                    <Edit3 className="mr-2 h-5 w-5" />
+                    Start in Editor
+                  </Button>
+                </Link>
+                <a href="https://github.com/rashidrashiii/BuildMyResume" target="_blank" rel="noopener noreferrer">
+                  <Button variant="ghost" size="lg" className="w-full sm:w-auto h-14 px-8 text-lg rounded-full">
+                    <Github className="mr-2 h-5 w-5" />
+                    Star on GitHub
+                  </Button>
+                </a>
+              </div>
             </Card>
-          </section>
+          </div>
+        </section>
 
-          {/* Publish Resume Section */}
-          <section className="py-12 sm:py-16 lg:py-24">
-            <Card className="max-w-4xl mx-auto border-0 shadow-elegant">
-              <CardContent className="p-6 sm:p-8 lg:p-12 text-center">
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6 px-4">
-                  Publish Once. Edit Anytime. No Account Needed.
-                </h2>
-                <p className="text-base sm:text-lg lg:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-3xl mx-auto leading-relaxed px-4">
-                  Want to edit your resume later or share it with someone? Just click "Publish" — 
-                  we'll generate a secure, encrypted link you can use anytime, from any device. 
-                  No sign-up. No tracking. Full privacy.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
-                  <Link to="/editor" className="w-full sm:w-auto">
-                    <Button size="lg" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 min-h-[48px]">
-                      Create & Publish Resume
-                      <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* FAQ Section */}
-          <section className="py-12 sm:py-16 lg:py-24">
-            <div className="max-w-4xl mx-auto">
-              <div className="text-center space-y-4 mb-12">
-                <h2 className="text-3xl md:text-4xl font-bold">
-                  Frequently Asked Questions
-                </h2>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                  Everything you need to know about BuildMyResume.
-                </p>
-              </div>
-
-              <Card className="border-0 shadow-elegant">
-                <CardContent className="p-6 sm:p-8">
-                  <Accordion type="single" collapsible className="w-full">
-                    {faqItems.map((item, index) => (
-                      <AccordionItem key={index} value={`item-${index}`} className="border-muted/30">
-                        <AccordionTrigger className="text-left text-lg font-semibold hover:text-primary transition-colors">
-                          {item.question}
-                        </AccordionTrigger>
-                        <AccordionContent className="text-base text-muted-foreground leading-relaxed pt-2">
-                          {item.answer}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </CardContent>
-              </Card>
-            </div>
-          </section>
-
-          {/* GitHub Contributions Section */}
-          <section className="py-16 sm:py-20 lg:py-24">
-            <div className="max-w-4xl mx-auto">
-              <div className="text-center space-y-4 mb-12">
-                <h2 className="text-3xl md:text-4xl font-bold">
-                  Join Our Open Source Community
-                </h2>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                  BuildMyResume is built by developers, for developers. We welcome contributions from everyone!
-                </p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-8 mb-12">
-                <Card className="border-0 shadow-elegant">
-                  <CardHeader>
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <GitFork className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl">Fork & Contribute</CardTitle>
-                        <CardDescription>Start contributing to BuildMyResume</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-4">
-                      Whether you're fixing bugs, adding features, or improving documentation, your contributions are welcome.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <a 
-                        href="https://github.com/rashidrashiii/BuildMyResume/fork" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex-1"
-                      >
-                        <Button variant="outline" className="w-full">
-                          <GitFork className="h-4 w-4 mr-2" />
-                          Fork Repository
-                        </Button>
-                      </a>
-                      <a 
-                        href="https://github.com/rashidrashiii/BuildMyResume/blob/main/docs/CONTRIBUTING.md" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex-1"
-                      >
-                        <Button variant="ghost" className="w-full">
-                          Read Guidelines
-                        </Button>
-                      </a>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-0 shadow-elegant">
-                  <CardHeader>
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <Users className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl">Join the Community</CardTitle>
-                        <CardDescription>Connect with other contributors</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-4">
-                      Join our community of developers who are passionate about making resume building accessible to everyone.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <a 
-                        href="https://github.com/rashidrashiii/BuildMyResume/issues" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex-1"
-                      >
-                        <Button variant="outline" className="w-full">
-                          <Github className="h-4 w-4 mr-2" />
-                        Report Issues
-                        </Button>
-                      </a>
-                      <a 
-                      href="https://github.com/rashidrashiii/BuildMyResume/discussions" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex-1"
-                      >
-                        <Button variant="ghost" className="w-full">
-                        Discussions
-                        </Button>
-                      </a>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-            </div>
-          </section>
-        </main>
-
-              <Footer />
+        <Footer />
       </div>
     </>
   );

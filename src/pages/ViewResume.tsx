@@ -10,10 +10,10 @@ import { templates } from "@/templates";
 import { useReactToPrint } from "react-to-print";
 import { useToast } from "@/hooks/use-toast";
 import { decryptAES } from '@/utils/export';
-import {ResumePreview} from "@/components/ResumePreview";
+import { ResumePreview } from "@/components/ResumePreview";
 import { estimateA4PagesFromFullHtml } from "@/utils/findPages";
 import ExportButtons from "@/components/ExportButtons";
-import { securePdfExport } from "@/utils/secureExport";
+
 import FullScreenLoader from "@/components/FullScreenLoader";
 
 const ViewResume = () => {
@@ -140,29 +140,28 @@ const ViewResume = () => {
     });
   };
 
-  // Secure PDF export handler (same as editor)
-  const handleExportPDF = async () => {
-    try {
+  const handleExportPDF = useReactToPrint({
+    contentRef: secureExportRef,
+    documentTitle: decryptedData?.firstName || decryptedData?.lastName
+      ? `${decryptedData.firstName}_${decryptedData.lastName}_Resume`
+      : resume ? resume.title : 'Resume',
+    onBeforePrint: () => {
       setSecureExportLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      let htmlToExport;
-      if (secureExportRef.current) {
-        htmlToExport = secureExportRef.current.innerHTML;
-      } else {
-        throw new Error("Resume content not ready.");
-      }
-      await securePdfExport(htmlToExport);
-      toast({ title: "PDF Exported", description: "Your secure PDF is ready." });
-    } catch (error) {
+      return new Promise((resolve) => setTimeout(resolve, 100));
+    },
+    onAfterPrint: () => {
+      setSecureExportLoading(false);
+      toast({ title: "PDF Exported!", description: "Your resume has been saved successfully." });
+    },
+    onPrintError: (error) => {
+      setSecureExportLoading(false);
       toast({
         title: "Export Failed",
-        description: error?.message || "Something went wrong.",
+        description: "Something went wrong.",
         variant: "destructive",
       });
-    } finally {
-      setSecureExportLoading(false);
     }
-  };
+  });
 
   if (loading) {
     return (
@@ -190,7 +189,7 @@ const ViewResume = () => {
               {error || "Resume not found"}
             </AlertDescription>
           </Alert>
-          
+
           <div className="mt-8 text-center">
             <Link to="/editor">
               <Button>
@@ -203,7 +202,7 @@ const ViewResume = () => {
     );
   }
 
-      const TemplateComponent = templates[decryptedData.selectedTemplate || resume.template_name] || templates["modern-clean"];
+  const TemplateComponent = templates[decryptedData.selectedTemplate || resume.template_name] || templates["modern-clean"];
   const keyFragment = window.location.hash;
 
   return (
@@ -245,9 +244,9 @@ const ViewResume = () => {
                 Published on {new Date(resume.created_at).toLocaleDateString()}
               </p>
             </div>
-            
+
             <div className="border rounded-lg p-3 sm:p-4 lg:p-6 bg-white overflow-hidden resume-preview-container">
-              <div className="w-full overflow-x-auto">
+              <div id="public-resume-preview-container" className="w-full overflow-x-auto">
                 <ResumePreview
                   data={decryptedData}
                   TemplateComponent={TemplateComponent}

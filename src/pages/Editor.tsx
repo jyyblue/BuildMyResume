@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { FileText, ArrowLeft, Download, Eye, ZoomIn, ZoomOut, Maximize2, Settings, ChevronDown, ChevronRight, Palette, Edit3, Save, AlertTriangle, Sparkles } from "lucide-react";
+import { FileText, ArrowLeft, Download, Eye, ZoomIn, ZoomOut, Maximize2, Settings, ChevronDown, ChevronRight, Palette, Edit3, Save, AlertTriangle } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { AppNavigation } from "@/components/AppNavigation";
 import { templates } from "@/templates";
@@ -14,7 +14,7 @@ import { useResume, ResumeData } from "@/contexts/ResumeContext";
 import { useToast } from "@/hooks/use-toast";
 import { useReactToPrint } from "react-to-print";
 import FullScreenLoader from "@/components/FullScreenLoader";
-import { securePdfExport } from "@/utils/secureExport";
+
 import { useSearchParams } from "react-router-dom";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { ResumePreview } from "@/components/ResumePreview";
@@ -25,7 +25,7 @@ import { decryptAES, encryptAES } from '@/utils/export';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import sampleData from "@/data/sample.json";
-  const restoreCaretPosition = (element: Element, position: number) => {
+const restoreCaretPosition = (element: Element, position: number) => {
   let charIndex = 0;
   const walker = document.createTreeWalker(
     element,
@@ -33,8 +33,8 @@ import sampleData from "@/data/sample.json";
     null
   );
 
-        let node: Node | null;
-      while ((node = walker.nextNode())) {
+  let node: Node | null;
+  while ((node = walker.nextNode())) {
     const nextCharIndex = charIndex + node.textContent.length;
     if (position <= nextCharIndex) {
       const range = document.createRange();
@@ -49,54 +49,18 @@ import sampleData from "@/data/sample.json";
   }
 };
 
-// Utility function to estimate A4 pages
-  const estimateA4PagesFromFullHtml = (htmlString: string) => {
-  // A4 dimensions: 8.27" x 11.69"
-  // Puppeteer default margins: ~0.4" on all sides
-  // Available content height: 11.69" - (2 * 0.4") = 10.89" = 1045px at 96dpi
-  const A4_HEIGHT_PX = 1045; // Account for Puppeteer's default margins
-
-  return new Promise((resolve, reject) => {
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.left = '-9999px';
-    iframe.style.top = '0';
-    iframe.style.width = '794px'; // A4 width
-    iframe.style.height = 'auto';
-    iframe.style.visibility = 'hidden';
-
-    document.body.appendChild(iframe);
-
-    iframe.onload = () => {
-      try {
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (!iframeDoc) throw new Error("Failed to access iframe document");
-
-        const totalHeight = iframeDoc.body.scrollHeight;
-        document.body.removeChild(iframe);
-
-        const pageCount = Math.ceil(totalHeight / A4_HEIGHT_PX);
-        resolve(pageCount);
-      } catch (err) {
-        reject(err);
-      }
-    };
-
-    iframe.srcdoc = htmlString;
-  });
-};
 
 const Editor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeTab, setActiveTab] = useState("edit");
-  const [zoom, setZoom] = useState(1);
+
   const [isInitialized, setIsInitialized] = useState(false);
   const [isTemplatesSectionOpen, setIsTemplatesSectionOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editableContent, setEditableContent] = useState("");
-  const [pageCount, setPageCount] = useState(1);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [publishedId, setPublishedId] = useState<string | null>(null);
@@ -129,27 +93,27 @@ const Editor = () => {
   // Helper function to check if form has any data
   const hasFormData = () => {
     // Check basic fields
-    const hasBasicData = !!(state.data.firstName || state.data.lastName || state.data.email || 
-                           state.data.phone || state.data.summary);
-    
+    const hasBasicData = !!(state.data.firstName || state.data.lastName || state.data.email ||
+      state.data.phone || state.data.summary);
+
     // Check if experiences have actual content (not just empty objects)
-    const hasExperienceData = state.data.experiences.some(exp => 
+    const hasExperienceData = state.data.experiences.some(exp =>
       exp.company || exp.title || exp.description || exp.startDate || exp.endDate
     );
-    
+
     // Check if education has actual content (not just empty objects)
-    const hasEducationData = state.data.education.some(edu => 
+    const hasEducationData = state.data.education.some(edu =>
       edu.school || edu.degree || edu.field || edu.startDate || edu.endDate
     );
-    
+
     // Check if there are actual skills
     const hasSkillsData = state.data.skills.length > 0;
-    
+
     // Check other sections
-    const hasOtherData = state.data.certifications.length > 0 || 
-                        state.data.languages.length > 0 || 
-                        state.data.customSections.length > 0;
-    
+    const hasOtherData = state.data.certifications.length > 0 ||
+      state.data.languages.length > 0 ||
+      state.data.customSections.length > 0;
+
     return hasBasicData || hasExperienceData || hasEducationData || hasSkillsData || hasOtherData;
   };
 
@@ -280,45 +244,6 @@ const Editor = () => {
     }
   };
 
-  // Calculate page count whenever content changes
-  useEffect(() => {
-    const calculatePages = async () => {
-      if (secureExportRef.current) {
-        try {
-          const htmlString = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta charset="utf-8">
-              <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { 
-                  font-family: system-ui, -apple-system, sans-serif; 
-                  font-size: 14px; 
-                  line-height: 1.5; 
-                  color: #000; 
-                  width: 794px;
-                  margin: 0;
-                  padding: 20px;
-                  background-color: white;
-                  overflow: visible;
-                }
-                .page-break { page-break-before: always; }
-              </style>
-            </head>
-            <body>${secureExportRef.current.innerHTML}</body>
-            </html>
-          `;
-          const pages = await estimateA4PagesFromFullHtml(htmlString);
-          setPageCount(pages as number);
-        } catch (error) {
-          setPageCount(1);
-        }
-      }
-    };
-
-    calculatePages();
-  }, [state.data, editableContent]);
 
   // Handle window resize
   useEffect(() => {
@@ -329,13 +254,6 @@ const Editor = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  const fitToWidth = (containerWidth: number) => {
-    const padding = 40;
-    const availableWidth = containerWidth - padding;
-    const newZoom = Math.min(availableWidth / baseWidth, 1);
-    setZoom(newZoom);
-  };
 
   const handleFormatClick = () => {
     if (isEditing) {
@@ -379,7 +297,7 @@ const Editor = () => {
         // If already in formatting mode, just enter edit mode
         requestAnimationFrame(() => {
           const newEditableContent = state.editedHtml || (secureExportRef.current ? secureExportRef.current.innerHTML : '');
-          
+
           // Set all states at once to prevent multiple re-renders
           setEditableContent(newEditableContent);
           setPreviewEditing(true);
@@ -419,7 +337,7 @@ const Editor = () => {
     // Use requestAnimationFrame to batch state changes after modal animation
     requestAnimationFrame(() => {
       const newEditableContent = state.editedHtml || (secureExportRef.current ? secureExportRef.current.innerHTML : '');
-      
+
       // Set all states at once to prevent multiple re-renders
       setEditableContent(newEditableContent);
       setPreviewEditing(true);
@@ -427,34 +345,30 @@ const Editor = () => {
     });
   };
 
-  const exportToPDF = async () => {
-    try {
+  const exportToPDF = useReactToPrint({
+    contentRef: secureExportRef,
+    onBeforePrint: () => {
+      const previewData = getPreviewDataForEditor();
+      const parts = [previewData.firstName, previewData.lastName].filter(Boolean);
+      const title = parts.length > 0 ? `${parts.join('_')}_Resume` : 'Resume';
+      document.title = title;
       setSecureExportLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // Use edited content if available, otherwise use the original template content
-      let htmlToExport;
-      if (editableContent) {
-        htmlToExport = editableContent;
-      } else if (secureExportRef.current) {
-        htmlToExport = secureExportRef.current.innerHTML;
-      } else {
-        throw new Error("Resume content not ready.");
-      }
-
-      // Pass the HTML directly to securePdfExport
-      await securePdfExport(htmlToExport);
-      toast.toast({ title: "PDF Exported", description: "Your secure PDF is ready." });
-    } catch (error) {
+      return new Promise((resolve) => setTimeout(resolve, 100));
+    },
+    onAfterPrint: () => {
+      document.title = 'BuildMyResume - Editor';
+      setSecureExportLoading(false);
+      toast.toast({ title: "PDF Exported!", description: "Your resume has been saved successfully." });
+    },
+    onPrintError: (error) => {
+      setSecureExportLoading(false);
       toast.toast({
         title: "Export Failed",
-        description: error?.message || "Something went wrong.",
+        description: "Something went wrong.",
         variant: "destructive",
       });
-    } finally {
-      setSecureExportLoading(false);
     }
-  };
+  });
 
   const exportToDocx = async () => {
     toast.toast({
@@ -583,7 +497,7 @@ const Editor = () => {
         key={state.data.selectedTemplate} // force re-render on template change
         style={{ position: 'fixed', left: '-9999px', top: '-9999px', width: `${baseWidth}px`, height: 'auto', overflow: 'visible', zIndex: -1 }}
       >
-        <div ref={secureExportRef} style={{ width: `${baseWidth}px`, height: 'auto', backgroundColor: 'white', padding: '20px', margin: '0', boxSizing: 'border-box', fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '14px', lineHeight: '1.5', color: '#000', overflow: 'visible' }}>
+        <div ref={secureExportRef} className="resume-print-area" style={{ width: `${baseWidth}px`, height: 'auto', backgroundColor: 'white', margin: '0', boxSizing: 'border-box', fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '14px', lineHeight: '1.5', color: '#000', overflow: 'visible' }}>
           {isEditing && editableContent ? (
             <div dangerouslySetInnerHTML={{ __html: editableContent }} />
           ) : state.editedHtml ? (
@@ -614,7 +528,6 @@ const Editor = () => {
             width: `${baseWidth}px`,
             height: 'auto',
             backgroundColor: 'white',
-            padding: '20px',
             margin: '0',
             boxSizing: 'border-box',
             fontFamily: 'system-ui, -apple-system, sans-serif',
@@ -642,10 +555,11 @@ const Editor = () => {
               <ExportButtons exportToPDF={exportToPDF} exportToDocx={exportToDocx} exportToJSON={exportToJSON} resumeId={resumeId} />
               <Button
                 onClick={handleSavePublished}
-                className=" px-4 py-2 text-sm font-medium shadow-elegant"
+                size="sm"
+                variant="outline"
               >
                 <Save className="h-4 w-4 mr-2" />
-                <span className="inline">Save</span>
+                Save
               </Button>
               <Dialog open={showShareLink} onOpenChange={setShowShareLink}>
                 <DialogContent>
@@ -746,10 +660,8 @@ const Editor = () => {
                   isEditing={isEditing}
                   editableContent={editableContent}
                   setEditableContent={setEditableContent}
-                  zoom={zoom}
-                  setZoom={setZoom}
-                  pageCount={pageCount}
-                  setPageCount={setPageCount}
+
+
                   showZoomControls={true}
                   containerClassName=""
                   secureExportRef={secureExportRef}
@@ -798,22 +710,8 @@ const Editor = () => {
             <div className="h-full overflow-y-auto">
               <div className="p-6">
                 <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="mb-2">
                     <h2 className="text-2xl font-bold">Build Your Resume</h2>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-blue-200 dark:border-blue-700 hover:from-blue-100 hover:to-purple-100 dark:hover:from-blue-900/30 dark:hover:to-purple-900/30 text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200"
-                      disabled={isFormattingModeEnabled}
-                      onClick={() => {
-                        // This will be handled by the AIAssistedForm component
-                        const aiButton = document.querySelector('[data-ai-button]') as HTMLButtonElement;
-                        if (aiButton) aiButton.click();
-                      }}
-                    >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      AI Resume Creator
-                    </Button>
                   </div>
                   <p className="text-muted-foreground">
                     Fill in your information below and see your resume update in real-time.
@@ -922,10 +820,8 @@ const Editor = () => {
                   isEditing={isEditing}
                   editableContent={editableContent}
                   setEditableContent={setEditableContent}
-                  zoom={zoom}
-                  setZoom={setZoom}
-                  pageCount={pageCount}
-                  setPageCount={setPageCount}
+
+
                   showZoomControls={true}
                   containerClassName="flex-1"
                   secureExportRef={secureExportRef}
@@ -975,7 +871,7 @@ const Editor = () => {
               Switch to direct editing mode where you can format and edit your resume right in the preview
             </AlertDialogDescription>
           </AlertDialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-3">
               <div className="flex items-start gap-3">
@@ -985,7 +881,7 @@ const Editor = () => {
                   <p className="text-xs text-muted-foreground">Click and edit text directly in the preview</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-3">
                 <span className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0 text-center text-xs font-bold">↵</span>
                 <div>
@@ -993,7 +889,7 @@ const Editor = () => {
                   <p className="text-xs text-muted-foreground">Press Enter to add line breaks and spacing</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-3">
                 <span className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0 text-center text-xs font-bold">⌘Z</span>
                 <div>

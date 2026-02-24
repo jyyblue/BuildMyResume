@@ -55,8 +55,8 @@ const ExportButtons = ({ exportToPDF, exportToDocx, exportToJSON, resumeId }: Ex
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          className={`flex items-center justify-center shadow-elegant sm:w-auto min-h-[44px]${isMobile ? ' h-10 w-10 min-w-10 min-h-10' : ''}`}
-          size={isMobile ? "icon" : undefined}
+          variant="outline"
+          size={isMobile ? "icon" : "sm"}
           aria-label="Export Resume"
         >
           <Download className="h-4 w-4" />
