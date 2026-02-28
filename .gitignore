@@ -28,12 +28,9 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
-dist-ssr
 *.local
 
 # NestJS API (api/)
-api/dist/
 api/node_modules/
 api/.env
 
