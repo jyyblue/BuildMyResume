@@ -127,13 +127,13 @@ export default function ChatHistoryModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-full sm:max-w-lg overflow-hidden">
-                <DialogHeader>
+            <DialogContent className="w-[calc(100vw-2rem)] max-w-md sm:max-w-lg overflow-hidden p-4 sm:p-6 rounded-xl">
+                <DialogHeader className="text-left mb-2 sm:mb-0">
                     <DialogTitle className="flex items-center gap-2 text-lg">
                         <Clock className="w-5 h-5 text-blue-500" />
                         Chat History
                     </DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription className="text-left text-xs sm:text-sm">
                         Switch between your previous resume chats
                     </DialogDescription>
                 </DialogHeader>
@@ -155,12 +155,13 @@ export default function ChatHistoryModal({
                                 const isActive = session.id === activeSessionId;
                                 const isEditing = editingId === session.id;
                                 return (
-                                    <button
+                                    <div
                                         key={session.id}
                                         onClick={() => handleSelect(session.id)}
+                                        role="button"
                                         className={`
                                             w-full text-left px-3 py-3 rounded-lg transition-all duration-150 
-                                            flex items-center gap-3 group relative
+                                            flex items-center gap-3 group relative cursor-pointer
                                             ${isActive
                                                 ? 'bg-blue-50 dark:bg-blue-950/40 ring-2 ring-inset ring-blue-300 dark:ring-blue-700'
                                                 : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
@@ -179,7 +180,7 @@ export default function ChatHistoryModal({
                                         </div>
 
                                         {/* Content */}
-                                        <div className="flex-1 min-w-0 overflow-hidden pr-14">
+                                        <div className="flex-1 min-w-0 pr-16 sm:pr-14">
                                             {isEditing ? (
                                                 <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                                                     <input
@@ -203,11 +204,11 @@ export default function ChatHistoryModal({
                                             ) : (
                                                 <>
                                                     <div className="flex items-center gap-2">
-                                                        <span className={`text-sm font-medium truncate ${isActive ? 'text-blue-700 dark:text-blue-300' : 'text-gray-800 dark:text-gray-200'}`}>
-                                                            {session.title.length > 35 ? session.title.slice(0, 35) + '…' : session.title}
+                                                        <span className={`text-sm font-medium ${isActive ? 'text-blue-700 dark:text-blue-300' : 'text-gray-800 dark:text-gray-200'}`}>
+                                                            {session.title.length > 25 ? session.title.slice(0, 25) + '…' : session.title}
                                                         </span>
                                                         {isActive && (
-                                                            <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-500 bg-blue-100 dark:bg-blue-900/50 px-1.5 py-0.5 rounded shrink-0">
+                                                            <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-500 bg-blue-100 dark:bg-blue-900/50 px-1.5 py-0.5 rounded shrink-0 hidden sm:inline-block">
                                                                 Active
                                                             </span>
                                                         )}
@@ -227,24 +228,24 @@ export default function ChatHistoryModal({
 
                                         {/* Action buttons — absolutely positioned */}
                                         {!isEditing && (
-                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sm:bg-transparent sm:backdrop-blur-none p-1 sm:p-0 rounded-lg">
                                                 <button
                                                     onClick={(e) => startRename(e, session)}
-                                                    className="p-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/30 text-gray-400 hover:text-blue-500 transition-all"
+                                                    className="p-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-950/30 text-gray-500 hover:text-blue-500 transition-all"
                                                     title="Rename chat"
                                                 >
                                                     <Pencil className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button
                                                     onClick={(e) => handleDelete(e, session.id)}
-                                                    className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-400 hover:text-red-500 transition-all"
+                                                    className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-500 hover:text-red-500 transition-all"
                                                     title="Delete chat"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
                                         )}
-                                    </button>
+                                    </div>
                                 );
                             })}
                         </div>

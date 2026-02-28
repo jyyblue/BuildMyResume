@@ -118,7 +118,7 @@ const Home = () => {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center items-center pt-8">
-                <Link to="/ai-builder" className="w-full sm:w-auto group">
+                <Link to="/ai-resume-builder" className="w-full sm:w-auto group">
                   <Button size="xl" className="w-full sm:w-auto rounded-full shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:shadow-[0_0_40px_rgba(59,130,246,0.6)] transition-all duration-500 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border-none">
                     <Sparkles className="mr-2 h-5 w-5 animate-pulse" />
                     Try AI Builder
@@ -197,7 +197,7 @@ const Home = () => {
                     </div>
                   </div>
                   <div className="mt-8 text-center flex-shrink-0">
-                    <Link to="/ai-builder">
+                    <Link to="/ai-resume-builder">
                       <Button size="lg" className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-14 text-[1rem]">
                         Start Chatting
                         <ArrowRight className="ml-2 h-4 w-4" />
@@ -376,7 +376,7 @@ const Home = () => {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to="/ai-builder">
+                <Link to="/ai-resume-builder">
                   <Button size="lg" className="w-full sm:w-auto h-14 px-8 text-lg rounded-full bg-primary hover:bg-primary/90 shadow-lg">
                     <Sparkles className="mr-2 h-5 w-5" />
                     Start with AI

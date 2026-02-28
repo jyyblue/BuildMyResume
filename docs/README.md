@@ -13,7 +13,7 @@ Welcome to the BuildMyResume documentation! This folder contains comprehensive g
 - **[Template Organization](./TEMPLATE_ORGANIZATION.md)** - Template structure and naming conventions
 
 ### 🔧 Development
-- **[Firebase Functions](./FUNCTIONS.md)** - Backend functions documentation and setup
+- **[API Setup](./API_SETUP.md)** - Backend NestJS setup and proxy documentation
 - **[AI Enhancement Guide](./AI_ENHANCEMENT.md)** - AI-powered content enhancement feature documentation
 - **[SEO Guide](./SEO_GUIDE.md)** - Search engine optimization guidelines
 
@@ -25,23 +25,22 @@ Welcome to the BuildMyResume documentation! This folder contains comprehensive g
 3. Review [Template Guide](./TEMPLATE_GUIDE.md) if creating templates
 
 ### For Developers
-1. [Firebase Functions](./FUNCTIONS.md) - Backend setup and API documentation
+1. [API Setup](./API_SETUP.md) - Backend NestJS setup and proxy documentation
 2. [AI Enhancement Guide](./AI_ENHANCEMENT.md) - AI feature implementation and setup
 3. [Template Organization](./TEMPLATE_ORGANIZATION.md) - Code structure guidelines
 4. [SEO Guide](./SEO_GUIDE.md) - Optimization best practices
 
 ### For Deployment
-1. [Firebase Functions](./FUNCTIONS.md) - Production deployment guide
+1. Refer to the Root `README.md` for Vercel deployment instructions.
 
 ## 📖 Documentation Structure
 
-```
 docs/
 ├── README.md                    # This file - documentation index
 ├── CONTRIBUTING.md              # Contribution guidelines
 ├── TEMPLATE_GUIDE.md           # Template creation guide
 ├── TEMPLATE_ORGANIZATION.md    # Template structure guide
-├── FUNCTIONS.md                # Firebase Functions documentation
+├── API_SETUP.md                # NestJS API documentation
 ├── AI_ENHANCEMENT.md           # AI-powered content enhancement guide
 └── SEO_GUIDE.md                # SEO optimization guide checklist
 ```

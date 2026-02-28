@@ -121,27 +121,22 @@ After enhancement, you'll see "Accept" and "Reject" buttons:
 ### **2. Environment Configuration**
 
 #### **Local Development**
-Create `functions/.env`:
+Create `api/.env`:
 ```env
+PORT=4000
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-2.0-flash-lite
-SHARED_SECRET=your_secure_secret_here
-ALLOWED_ORIGINS=http://localhost:8080,http://localhost:3000
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
-#### **Production (Firebase)**
-Set Firebase Functions config:
-```bash
-firebase functions:config:set gemini.api_key="your_gemini_api_key_here"
-firebase functions:config:set gemini.model="gemini-2.0-flash-lite"
-firebase functions:config:set security.shared_secret="your_secure_secret_here"
-firebase functions:config:set security.allowed_origins="https://buildmyresume.live,https://www.buildmyresume.live"
-```
+#### **Production (Vercel)**
+Set the environment variables directly in your hosting provider's project settings (e.g. Vercel):
+- `GEMINI_API_KEY=your_gemini_api_key_here`
+- `GEMINI_MODEL=gemini-2.5-flash`
 
 ### **3. Install Dependencies**
 ```bash
-cd functions
-npm install @google/generative-ai
+cd api
+pnpm install
 ```
 
 ### **4. Model Configuration (Optional)**
@@ -154,16 +149,15 @@ You can customize the AI model used for enhancement:
 # - gemini-1.5-flash - Alternative model
 # - gemini-1.5-pro - More powerful model
 
-# Set via environment variable
-GEMINI_MODEL=gemini-2.0-flash-lite
-
-# Or via Firebase Functions config
-firebase functions:config:set gemini.model="gemini-2.0-flash-lite"
+# Set via environment variable inside api/.env
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
-### **5. Deploy Functions**
+### **5. Deploy Server**
+If deploying via standard pipelines, simply push your code. For custom instances:
 ```bash
-firebase deploy --only functions
+pnpm run build
+pnpm run start:prod
 ```
 
 ## 🚨 Security Features
@@ -205,9 +199,9 @@ firebase deploy --only functions
 - Check if you've reached the 5-attempt limit per field
 
 ### **Debug Mode**
-Enable debug logging in `functions/src/index.ts`:
-```typescript
-const DEBUG_MODE = process.env.NODE_ENV === 'development';
+You can log detailed errors from within the NestJS API console by inspecting the server logs:
+```bash
+pnpm run start:dev
 ```
 
 ## 📈 Performance Optimization
@@ -246,7 +240,7 @@ For issues with AI enhancement:
 
 ## 🔗 Related Documentation
 
-- **[Firebase Functions](./FUNCTIONS.md)** - Backend implementation details
+- **[API Setup](./API_SETUP.md)** - Backend implementation details
 - **[Security Checklist](./PUBLIC_REPO_CHECKLIST.md)** - Security best practices
 - **[Contributing Guidelines](./CONTRIBUTING.md)** - How to contribute to AI features
 

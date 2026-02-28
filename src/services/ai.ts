@@ -40,30 +40,15 @@ export const enhanceContentWithAI = async (
   rejectedResponses?: string[]
 ): Promise<AIEnhancementResponse> => {
   try {
-    const PROXY_URL = 'http://localhost:4000/ai/chat';
+    const API_URL = 'http://localhost:4000/ai/enhance';
 
-    if (!window.puter?.auth?.authToken) {
-      // Fallback for types or if token is missing (should be handled by UI)
-      console.warn("Puter Auth Token missing, attempting to use SDK directly or failing...");
-      // For now, let's assume token is available if Signed In.
-    }
-
-    // Helper to get token
-    const getToken = () => {
-      // @ts-ignore
-      return window.puter?.auth?.authToken || window.puter?.auth?.session?.token;
-    };
-
-    const token = getToken();
-    if (!token) throw new Error("Please sign in to Puter.js first.");
-
-    const response = await fetch(PROXY_URL, {
+    const response = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        messages: `Field: ${field}\nContent: "${content}"\n${context ? `Context: ${JSON.stringify(context)}` : ''}`,
-        mode: 'ENHANCE',
-        token
+        field,
+        content,
+        rejectedResponses
       })
     });
 
@@ -85,12 +70,29 @@ export const enhanceContentWithAI = async (
       fullText = await response.text();
     }
 
-    const enhancedContent = fullText.trim();
+    let enhancedContent = fullText.trim();
+    let parsedContent = content;
+    let parsedField = field;
+
+    try {
+      const parsed = JSON.parse(fullText.trim());
+      if (parsed.enhancedContent) {
+        enhancedContent = parsed.enhancedContent;
+      }
+      if (parsed.originalContent) {
+        parsedContent = parsed.originalContent;
+      }
+      if (parsed.field) {
+        parsedField = parsed.field;
+      }
+    } catch (e) {
+      // Fallback if the backend somehow returns raw text
+    }
 
     return {
       enhancedContent,
-      originalContent: content,
-      field
+      originalContent: parsedContent,
+      field: parsedField
     };
   } catch (error) {
     console.error('AI enhancement error:', error);

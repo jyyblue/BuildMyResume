@@ -14,8 +14,9 @@
 **BuildMyResume** is for anyone who wants to build a professional, ATS-friendly resume with AI-powered content enhancement — without creating an account, paying hidden fees, or giving up privacy. Created by [Muhammed Rashid V](https://linkedin.com/in/muhammed-rashid-v).
 
 - **No login required**: Build and download resumes instantly, no sign-up or email needed.
-- **Publish for later**: Use the “Publish” feature to get a secure, encrypted link you can revisit from any device.
+- **AI Resume Builder**: Chat with our AI to effortlessly generate a full customized resume from scratch, powered by Puter.js.
 - **AI-powered enhancement**: Intelligent content improvement with Google Gemini AI for better ATS optimization.
+- **Publish for later**: Use the “Publish” feature to get a secure, encrypted link you can revisit from any device.
 - **End-to-end encrypted**: All resume data is encrypted before storage or export. Only you hold the key.
 - **Open source & free forever**: MIT licensed, transparent, and built for the community.
 
@@ -25,21 +26,34 @@
 
 - 🧩 **Form-based resume builder** — Fill out a structured form and see your resume update in real time.
 - 🤖 **AI-powered content enhancement** — Enhance your resume content with AI using Google's Gemini for better ATS optimization and professional language. Get intelligent suggestions for Professional Summary, Job Descriptions, and more.
+- 🔮 **AI Resume Builder & Puter.js Integration** — We partner with [Puter.js](https://puter.com/) to offer a robust, free-to-use AI resume generation experience that helps you build a resume from scratch securely and boundlessly.
 - 🔐 **Privacy-first** — All data is encrypted before storage or export. No accounts, no tracking.
 - 🔄 **Editable preview** — Adjust formatting directly on your resume before exporting.
-- 📄 **Export options** — Download as PDF (via encrypted serverless function) or JSON.
+- 📄 **Export options** — Download as high-fidelity PDF (rendered locally in your browser) or export to JSON.
 - 🔗 **Published resume link** — Get a secure, encrypted link to revisit and edit your resume anytime.
 - 📱 **Mobile-friendly UI** — Fully responsive, works beautifully on all devices.
 - 🧑‍💻 **Open source** — MIT licensed and built for the community.
 
 ---
 
+## 🤖 AI Resume Builder (Powered by Puter.js)
+
+We've integrated an advanced interactive AI Resume Builder directly into the platform to help you generate a professional resume from a simple prompt or chat conversation. 
+
+- **Built with Puter.js**: We leverage [Puter.js](https://puter.com/) to provide boundless, reliable, and secure AI generation for creating your initial resume draft.
+- **Interactive Chat**: You can chat with the AI to refine your experiences, add missing details, and tweak your resume generation.
+- **Privacy-focused**: Your prompts and generated data are handled securely and fed directly into your local private editor. 
+
+Once the AI generates your base resume, you can switch to the Editor to manually tweak formatting, add new sections, enhance your fields, and export to PDF.
+
+---
+
 ## 🛠️ Tech Stack
 
 - **Frontend**: React, Tailwind CSS, [shadcn/ui](https://ui.shadcn.com/), [crypto-js](https://github.com/brix/crypto-js), [file-saver](https://github.com/eligrey/FileSaver.js)
-- **Backend**: Firebase Functions, Express.js
-- **AI Integration**: Google Gemini API
-- **PDF Rendering**: [puppeteer-core](https://github.com/puppeteer/puppeteer), [chrome-aws-lambda](https://github.com/alixaxel/chrome-aws-lambda)
+- **Backend API**: NestJS, Express.js
+- **AI Integration**: Google Gemini API via `@google/generative-ai` (for Enhancement) and [Puter.js](https://puter.com) (for AI Builder Chat/Generate)
+- **PDF Rendering**: Local high-fidelity print generation via `@react-pdf/renderer` and HTML Printing
 - **Security**: AES encryption + HMAC signature (for data integrity), Rate limiting, Input validation
 
 ---
@@ -48,19 +62,17 @@
 
 ```mermaid
 flowchart TD
-    A[User fills form] --> B[Live resume preview]
+    A[User fills form or Chat with AI] --> B[Live resume preview]
     B --> C{Export or Publish?}
-    C -->|Export| D[Encrypt + sign HTML]
-    D --> E[Send to backend serverless]
-    E --> F[Generate PDF Puppeteer]
-    F --> G[Return base64 PDF to user]
+    C -->|Export| D[Client-Side PDF Generation]
+    D --> E[Download PDF to user device]
     C -->|Publish| H[Encrypt and save to DB]
     H --> I[Return unique, sharable URL]
     I --> J[Resume can be edited/decrypted via URL+key]
 ```
 
 - **Build**: Fill out the form, see instant preview, and edit formatting directly.
-- **Export**: Resume HTML is encrypted and signed, sent to a serverless backend, rendered to PDF with Puppeteer, and returned as a secure download.
+- **Export**: Generates high-resolution PDFs directly on the client machine using browser native print capabilities alongside React rendering boundaries.
 - **Publish**: Resume is encrypted and stored in the cloud. You get a unique, encrypted link to revisit and edit your resume from any device.
 - **Access**: When you open a published link, the resume is decrypted in your browser using the embedded key — your data stays private.
 
@@ -73,7 +85,6 @@ flowchart TD
 - All resume data is encrypted in the browser using AES (via `crypto-js`).
 - When you publish or export, the data is encrypted with a randomly generated key.
 - For published resumes, the key is embedded in the URL fragment (`#key=...`), never sent to the server.
-- For PDF export, the HTML is encrypted and signed with a shared secret before being sent to the serverless function.
 
 ### Publishing & Editing
 
@@ -83,9 +94,7 @@ flowchart TD
 
 ### PDF Export
 
-- PDF export is handled by a Firebase Function (or any serverless endpoint) using Puppeteer and headless Chrome.
-- The frontend sends encrypted HTML and a HMAC signature.
-- The backend verifies the signature, decrypts the HTML, renders it to PDF, and returns a base64-encoded PDF.
+- PDF export is securely handled entirely in the browser using the `useReactToPrint` architecture. Your data never needs to round-trip to a third-party server to be styled into a PDF file, keeping you private and your operations extremely fast.
 
 ---
 
@@ -94,58 +103,60 @@ flowchart TD
 Create a `.env` file in the project root:
 
 ```
-VITE_EXPORT_API=https://your-cloud-function-url
-VITE_API_BASE_URL=https://your-cloud-function-url
+VITE_API_URL=http://localhost:4000
 VITE_SHARED_SECRET=your-shared-secret
 VITE_SUPABASE_URL=https://your-supabase-url
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-VITE_BASE_URL=http://localhost:8080
+VITE_BASE_URL=http://localhost:5173
 VITE_UMAMI_SRC=https://cloud.umami.is/script.js
 VITE_UMAMI_WEBSITE_ID=your-umami-website-id
 ```
 
 ### AI Enhancement Setup
 
-For AI content enhancement features, you'll need to set up Google Gemini API:
+For AI content enhancement features, you'll need to set up Google Gemini API inside the `api/` directory:
 
 1. Get a Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. For local development, add to `functions/.env`:
+2. For local backend development, add to `api/.env`:
    ```
+   PORT=4000
    GEMINI_API_KEY=your_gemini_api_key_here
+   GEMINI_MODEL=gemini-2.5-flash
    ```
-3. For production, set Firebase Functions config:
-   ```bash
-   firebase functions:config:set gemini.api_key="your_gemini_api_key_here"
-   ```
+3. For production deployment on Vercel, attach `GEMINI_API_KEY` to your Vercel Project Environment Variables directly.
 
-See [AI_SETUP.md](./AI_SETUP.md) for detailed setup instructions.
+See [API_SETUP.md](./docs/API_SETUP.md) for detailed setup instructions.
 
-- `VITE_EXPORT_API`: URL of your deployed PDF export function
-- `VITE_API_BASE_URL`: URL of your deployed function
-- `VITE_SHARED_SECRET`: Secret used for encrypting/signing PDF export payloads
-- `VITE_SUPABASE_URL`: Your Supabase project URL (for published resume storage)
-- `VITE_SUPABASE_ANON_KEY`: Your Supabase anon/public API key
-- `VITE_BASE_URL`: The base URL of your frontend app (e.g., http://localhost:5173)
-- `VITE_UMAMI_SRC`: Umami script URL (cloud or self-hosted). Example: `https://cloud.umami.is/script.js`
-- `VITE_UMAMI_WEBSITE_ID`: Your Umami website ID
+*Note: The AI Resume Builder chat feature is powered by [Puter.js](https://puter.com) and authenticates directly on the client side, requiring no extra environment variables!*
+
+- `VITE_API_URL`: URL of your deployed NestJS Backend API Proxy.
+- `VITE_SHARED_SECRET`: Secret used for encryption.
+- `VITE_SUPABASE_URL`: Your Supabase project URL (for published resume storage).
+- `VITE_SUPABASE_ANON_KEY`: Your Supabase anon/public API key.
+- `VITE_BASE_URL`: The base URL of your frontend app (e.g., http://localhost:5173).
+- `VITE_UMAMI_SRC`: Umami script URL (cloud or self-hosted). Example: `https://cloud.umami.is/script.js`.
+- `VITE_UMAMI_WEBSITE_ID`: Your Umami website ID.
 
 ---
 
 ## 📦 Environment Example File
 
-A `.env.example` file is provided in the project root. It lists all required environment variables for both local and Firebase PDF export, as well as Supabase integration.
+A `.env.example` file is provided in the project root. It lists all required environment variables.
 
 - Copy `.env.example` to `.env` and fill in your values.
-- For local PDF export, set `VITE_EXPORT_API` to `http://localhost:5001/export-pdf`.
-- For Firebase/production, set `VITE_EXPORT_API` to your deployed function URL.
-- Make sure `VITE_SHARED_SECRET` matches between frontend and backend.
+- Make sure `VITE_SHARED_SECRET` matches between frontend and any remote services you connect.
 
 Example:
 ```env
+# Application API
+VITE_API_URL=http://localhost:4000
 VITE_SHARED_SECRET=your-shared-secret
-VITE_EXPORT_API=http://localhost:5001/export-pdf
+
+# Supabase
 VITE_SUPABASE_URL=https://your-supabase-url
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+
+# Etc
 VITE_BASE_URL=http://localhost:5173
 VITE_UMAMI_SRC=https://cloud.umami.is/script.js
 VITE_UMAMI_WEBSITE_ID=your-umami-website-id
@@ -172,32 +183,29 @@ Event tracking:
 
 ---
 
-## 🖨️ PDF Export: Local Development vs. Firebase
+## 🖨️ Architecture Setup: Local Development vs. Production Deployment
 
-You can run the PDF export backend in two ways:
+You can run the full dual-app stack in two ways:
 
-### 1. Local Development (using full Puppeteer)
+### 1. Local Development (Vite + NestJS)
 
-For local testing and development, use the full Puppeteer package (no headless Chrome AWS Lambda required):
-
-```sh
-cd functions
-npm run start:local
-```
-
-- The local server will run on [http://localhost:5001/export-pdf](http://localhost:5001/export-pdf)
-- This uses your locally installed Chrome/Chromium for PDF generation.
-
-### 2. Firebase Functions (Cloud/Emulator)
-
-For production or cloud emulation, use the Firebase Functions setup (with `puppeteer-core` and `chrome-aws-lambda`):
+For local testing, boot up both development servers simultaneously:
 
 ```sh
-cd functions
-npm run start:firebase
+# Terminal 1 - Frontend
+pnpm run dev
+
+# Terminal 2 - Backend
+cd api
+pnpm run start:dev
 ```
 
-- This runs the Firebase emulator for functions, matching the production environment.
+- The local backend will run on `http://localhost:4000`
+- The local frontend will run on `http://localhost:5173`
+
+### 2. Full Vercel Monorepo Deployment
+
+This project's root `web` and nested `api` folders are primed to be deployed seamlessly onto Vercel using workspaces or standard build configurations. Simply point the Build/Output directories respectively in your dashboard, and include the `GEMINI_API_KEY` into your Vercel Project parameters before hitting deploy!
 
 ---
 
@@ -216,7 +224,7 @@ For comprehensive documentation, guides, and development information, visit our 
 
 - **[Contributing Guidelines](./docs/CONTRIBUTING.md)** - How to contribute to the project
 - **[Template Guide](./docs/TEMPLATE_GUIDE.md)** - How to create and submit new resume templates
-- **[Firebase Functions](./docs/FUNCTIONS.md)** - Backend functions documentation and setup
+- **[API Setup Guide](./docs/API_SETUP.md)** - Backend API documentation and setup
 - **[AI Enhancement Guide](./docs/AI_ENHANCEMENT.md)** - AI-powered content enhancement feature documentation
 - **[SEO Guide](./docs/SEO_GUIDE.md)** - Search engine optimization guidelines
 - **[Security Checklist](./docs/PUBLIC_REPO_CHECKLIST.md)** - Security review and deployment checklist

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bot, User, Sparkles, Send, Download, ArrowLeft, Loader2, RefreshCw, Trash2, History, Plus, Paperclip, X, FileText } from "lucide-react";
+import { Bot, User, Sparkles, Send, Download, ArrowLeft, Loader2, RefreshCw, Trash2, History, Plus, Paperclip, X, FileText, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,6 +19,7 @@ import ChatHistoryModal from "@/components/ai-builder/ChatHistoryModal";
 import { validatePdfFile, extractTextFromPDF, wrapForPrompt } from "@/utils/pdfExtractor";
 import { PreviewEmptyState } from "@/components/ai-builder/PreviewEmptyState";
 import { PreviewLoadingState } from "@/components/ai-builder/PreviewLoadingState";
+import { PuterAuthModal } from "@/components/ai-builder/PuterAuthModal";
 
 interface Message {
     id: string;
@@ -94,6 +95,25 @@ const AIBuilder = () => {
     const [attachedPdf, setAttachedPdf] = useState<{ name: string; text: string; pageCount: number; truncated: boolean; attachmentId?: string; size: number } | null>(null);
     const [isExtracting, setIsExtracting] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+
+    // Puter Auth Modal State
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+    const [pendingAttachment, setPendingAttachment] = useState<any>(null);
+
+    // Mobile responsiveness
+    const [mobileView, setMobileView] = useState<'chat' | 'preview'>('chat');
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+    const [screenWidth, setScreenWidth] = useState(window.innerWidth);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 1024);
+            setScreenWidth(window.innerWidth);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // ---- Load session from IndexedDB on mount ----
     useEffect(() => {
@@ -293,8 +313,8 @@ const AIBuilder = () => {
             // @ts-ignore
             return window.puter.auth.authToken || window.puter.auth.session?.token || null;
         } catch (error) {
-            console.warn('[AIBuilder] Silent Puter auth failed:', error);
-            return null;
+            console.warn('[AIBuilder] Puter auth popup closed or failed:', error);
+            throw error;
         }
     };
 
@@ -477,31 +497,25 @@ const AIBuilder = () => {
         }
     };
 
-    const handleSendMessage = async () => {
-        if (!input.trim() || isLoading) return;
-
+    const processAndSendPrompt = async (promptInput: string, currentAttachment: any) => {
         // Build user message content — include PDF indicator if attached
-        const displayContent = input;
+        const displayContent = promptInput;
 
         const userMessage: Message = {
             id: Date.now().toString(),
             role: 'user',
             content: displayContent,
-            attachmentId: attachedPdf?.attachmentId,
-            attachmentName: attachedPdf?.name,
-            attachmentSize: attachedPdf?.size,
-            attachmentPages: attachedPdf?.pageCount,
+            attachmentId: currentAttachment?.attachmentId,
+            attachmentName: currentAttachment?.name,
+            attachmentSize: currentAttachment?.size,
+            attachmentPages: currentAttachment?.pageCount,
             timestamp: new Date()
         };
 
         // Build the actual content sent to AI (with PDF context if present)
-        const aiUserContent = attachedPdf
-            ? `${wrapForPrompt(attachedPdf.text)}\n\n${input}`
-            : input;
-
-        // Clear attachment after capturing
-        const hadPdf = !!attachedPdf;
-        setAttachedPdf(null);
+        const aiUserContent = currentAttachment
+            ? `${wrapForPrompt(currentAttachment.text)}\n\n${promptInput}`
+            : promptInput;
 
         setMessages(prev => [...prev, userMessage]);
         setInput("");
@@ -566,7 +580,7 @@ const AIBuilder = () => {
             } else if (typeof data === 'string') {
                 responseText = data;
             } else {
-                responseText = JSON.stringify(data);
+                throw new Error('Invalid AI response format');
             }
 
             // Clean markdown code blocks if present
@@ -722,6 +736,57 @@ const AIBuilder = () => {
         }
     };
 
+    const handleSendMessage = async () => {
+        if (!input.trim() || isLoading) return;
+
+        // Check auth before proceeding
+        // @ts-ignore
+        if (window.puter && window.puter.auth && !window.puter.auth.isSignedIn()) {
+            setPendingPrompt(input);
+            setPendingAttachment(attachedPdf);
+            setInput(""); // Clear immediately for responsiveness
+            setAttachedPdf(null); // Clear pending attachment
+            setShowAuthModal(true);
+            return;
+        }
+
+        await processAndSendPrompt(input, attachedPdf);
+    };
+
+    const handleAuthConnect = async () => {
+        try {
+            await ensurePuterAuth();
+            if (pendingPrompt) {
+                setShowAuthModal(false);
+                // Immediately send the intended prompt
+                await processAndSendPrompt(pendingPrompt, pendingAttachment);
+                setPendingPrompt(null);
+                setPendingAttachment(null);
+            } else {
+                setShowAuthModal(false);
+            }
+        } catch (error) {
+            console.error('Auth failed in modal:', error);
+            handleAuthCancel();
+        }
+    };
+
+    const handleAuthCancel = () => {
+        setShowAuthModal(false);
+        // Restore their prompt so they don't lose work
+        if (pendingPrompt) setInput(pendingPrompt);
+        if (pendingAttachment) setAttachedPdf(pendingAttachment);
+        setPendingPrompt(null);
+        setPendingAttachment(null);
+
+        // Ensure all loading states are forcefully cleared if they were somehow set
+        setIsLoading(false);
+        setIsThinking(false);
+        pendingApiRef.current = false;
+
+        toast({ title: 'Authentication Required', description: 'AI features require a connection to Puter.', variant: 'default' });
+    };
+
     const currentPdfTitle = useMemo(() => {
         return resumeData?.content?.personalInfo?.firstName
             ? `${resumeData.content.personalInfo.firstName}_${resumeData.content.personalInfo.lastName}_Resume`
@@ -749,281 +814,328 @@ const AIBuilder = () => {
         <div className="flex flex-col h-screen bg-background">
             <AppNavigation />
 
-            <div className="flex flex-1 overflow-hidden">
-                {/* LEFT PANEL: CHAT */}
-                <div className="w-1/3 min-w-[350px] max-w-[500px] flex flex-col border-r bg-white dark:bg-gray-900">
+            <div className="flex flex-1 overflow-hidden relative">
+                {/* SLIDING CONTAINER FOR MOBILE */}
+                <div
+                    className="flex h-full shrink-0 transition-transform duration-300 ease-in-out lg:!transform-none"
+                    style={{
+                        transform: isMobile ? (mobileView === 'preview' ? 'translateX(-50%)' : 'translateX(0)') : 'none',
+                        width: isMobile ? '200%' : '100%'
+                    }}
+                >
+                    {/* LEFT PANEL: CHAT */}
+                    <div className="w-1/2 shrink-0 lg:shrink lg:w-1/3 lg:min-w-[350px] lg:max-w-[500px] flex flex-col border-r bg-white dark:bg-gray-900 h-full">
 
-                    {/* Chat Header with History + New Chat buttons */}
-                    <div className="h-14 border-b flex items-center justify-between px-4 bg-white dark:bg-gray-900">
-                        <div className="flex items-center gap-1">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setHistoryOpen(true)}
-                                className="text-gray-500 hover:text-blue-500 gap-1.5 text-xs"
-                                title="Chat History"
-                            >
-                                <History className="w-3.5 h-3.5" />
-                                History
-                            </Button>
+                        {/* Chat Header with History + New Chat buttons */}
+                        <div className="h-14 border-b flex items-center justify-between px-4 bg-white dark:bg-gray-900">
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setHistoryOpen(true)}
+                                    className="text-gray-500 hover:text-blue-500 gap-1.5 text-xs"
+                                    title="Chat History"
+                                >
+                                    <History className="w-3.5 h-3.5" />
+                                    History
+                                </Button>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleNewChat}
+                                    className="text-gray-500 hover:text-green-600 gap-1.5 text-xs"
+                                >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    New Chat
+                                </Button>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleNewChat}
-                                className="text-gray-500 hover:text-green-600 gap-1.5 text-xs"
-                            >
-                                <Plus className="w-3.5 h-3.5" />
-                                New Chat
-                            </Button>
-                        </div>
-                    </div>
 
-                    {/* Chat History Modal */}
-                    <ChatHistoryModal
-                        open={historyOpen}
-                        onOpenChange={setHistoryOpen}
-                        activeSessionId={activeSessionId}
-                        onSelectSession={handleSwitchSession}
-                        onSessionDeleted={handleSessionDeleted}
-                        onSessionRenamed={handleSessionRenamed}
-                    />
+                        {/* Chat History Modal */}
+                        <ChatHistoryModal
+                            open={historyOpen}
+                            onOpenChange={setHistoryOpen}
+                            activeSessionId={activeSessionId}
+                            onSelectSession={handleSwitchSession}
+                            onSessionDeleted={handleSessionDeleted}
+                            onSessionRenamed={handleSessionRenamed}
+                        />
 
-                    {/* Messages */}
-                    <ScrollArea className="flex-1 p-4">
-                        <div className="space-y-6">
-                            {messages.map((message) => {
-                                let displayContent = message.content;
-                                let displayName = message.attachmentName || 'PDF Document';
+                        {/* Messages */}
+                        <ScrollArea className="flex-1 p-4">
+                            <div className="space-y-6">
+                                {messages.map((message) => {
+                                    let displayContent = message.content;
+                                    let displayName = message.attachmentName || 'PDF Document';
 
-                                // Handle legacy messages where name was encoded into content body
-                                if (message.attachmentId && message.content.trim().startsWith('📎')) {
-                                    const lines = message.content.split('\n\n');
-                                    if (lines.length > 1) {
-                                        const firstLine = lines.shift() || '';
-                                        if (!message.attachmentName) {
-                                            displayName = firstLine.replace('📎', '').trim();
+                                    // Handle legacy messages where name was encoded into content body
+                                    if (message.attachmentId && message.content.trim().startsWith('📎')) {
+                                        const lines = message.content.split('\n\n');
+                                        if (lines.length > 1) {
+                                            const firstLine = lines.shift() || '';
+                                            if (!message.attachmentName) {
+                                                displayName = firstLine.replace('📎', '').trim();
+                                            }
+                                            displayContent = lines.join('\n\n');
+                                        } else {
+                                            if (!message.attachmentName) {
+                                                displayName = message.content.replace('📎', '').trim();
+                                            }
+                                            displayContent = '';
                                         }
-                                        displayContent = lines.join('\n\n');
-                                    } else {
-                                        if (!message.attachmentName) {
-                                            displayName = message.content.replace('📎', '').trim();
-                                        }
-                                        displayContent = '';
                                     }
-                                }
 
-                                return (
-                                    <div
-                                        key={message.id}
-                                        className={`flex items-start gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''
-                                            }`}
-                                    >
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${message.role === 'user'
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
-                                            }`}>
-                                            {message.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                                        </div>
-                                        <div className={`flex flex-col max-w-[85%] ${message.role === 'user' ? 'items-end' : 'items-start'
-                                            }`}>
-                                            <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${message.role === 'user'
-                                                ? 'bg-blue-600 text-white rounded-tr-none'
-                                                : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-tl-none'
+                                    return (
+                                        <div
+                                            key={message.id}
+                                            className={`flex items-start gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''
+                                                }`}
+                                        >
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${message.role === 'user'
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
                                                 }`}>
-                                                {message.attachmentId && (
-                                                    <div
-                                                        onClick={async () => {
-                                                            const blob = await getAttachment(message.attachmentId!);
-                                                            if (blob) {
-                                                                const url = URL.createObjectURL(blob);
-                                                                window.open(url, '_blank');
-                                                            } else {
-                                                                toast({ title: "Error", description: "Could not load PDF attachment.", variant: "destructive" });
-                                                            }
-                                                        }}
-                                                        className={`cursor-pointer rounded-xl p-3 flex gap-3 min-w-[200px] max-w-xs sm:max-w-sm items-center transition-colors ${displayContent ? 'mb-2 mt-0.5' : ''
-                                                            } ${message.role === 'user'
-                                                                ? 'bg-black/15 hover:bg-black/25 text-white'
-                                                                : 'bg-gray-100 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100'
-                                                            }`}
-                                                    >
-                                                        <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center shadow-sm ${message.role === 'user'
-                                                            ? 'bg-white/20 text-white'
-                                                            : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                                                            }`}>
-                                                            <span className="text-[11px] font-bold uppercase tracking-wide">PDF</span>
-                                                        </div>
-                                                        <div className="flex flex-col min-w-0 pr-2">
-                                                            <span className="font-semibold truncate text-[14px] leading-tight mb-1">
-                                                                {displayName}
-                                                            </span>
-                                                            <div className="flex items-center gap-1.5 text-xs opacity-80">
-                                                                {message.attachmentPages && <span>{message.attachmentPages} page{message.attachmentPages > 1 ? 's' : ''}</span>}
-                                                                {message.attachmentPages && <span className="text-[10px] opacity-50">•</span>}
-                                                                {message.attachmentSize && <span>{Math.round(message.attachmentSize / 1024)} KB</span>}
-                                                                {message.attachmentSize && <span className="text-[10px] opacity-50">•</span>}
-                                                                <span className="lowercase font-medium tracking-wide">pdf</span>
+                                                {message.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                                            </div>
+                                            <div className={`flex flex-col max-w-[85%] ${message.role === 'user' ? 'items-end' : 'items-start'
+                                                }`}>
+                                                <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${message.role === 'user'
+                                                    ? 'bg-blue-600 text-white rounded-tr-none'
+                                                    : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-tl-none'
+                                                    }`}>
+                                                    {message.attachmentId && (
+                                                        <div
+                                                            onClick={async () => {
+                                                                const blob = await getAttachment(message.attachmentId!);
+                                                                if (blob) {
+                                                                    const url = URL.createObjectURL(blob);
+                                                                    window.open(url, '_blank');
+                                                                } else {
+                                                                    toast({ title: "Error", description: "Could not load PDF attachment.", variant: "destructive" });
+                                                                }
+                                                            }}
+                                                            className={`cursor-pointer rounded-xl p-3 flex gap-3 min-w-[200px] max-w-xs sm:max-w-sm items-center transition-colors ${displayContent ? 'mb-2 mt-0.5' : ''
+                                                                } ${message.role === 'user'
+                                                                    ? 'bg-black/15 hover:bg-black/25 text-white'
+                                                                    : 'bg-gray-100 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100'
+                                                                }`}
+                                                        >
+                                                            <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center shadow-sm ${message.role === 'user'
+                                                                ? 'bg-white/20 text-white'
+                                                                : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                                                                }`}>
+                                                                <span className="text-[11px] font-bold uppercase tracking-wide">PDF</span>
+                                                            </div>
+                                                            <div className="flex flex-col min-w-0 pr-2">
+                                                                <span className="font-semibold truncate text-[14px] leading-tight mb-1">
+                                                                    {displayName}
+                                                                </span>
+                                                                <div className="flex items-center gap-1.5 text-xs opacity-80">
+                                                                    {message.attachmentPages && <span>{message.attachmentPages} page{message.attachmentPages > 1 ? 's' : ''}</span>}
+                                                                    {message.attachmentPages && <span className="text-[10px] opacity-50">•</span>}
+                                                                    {message.attachmentSize && <span>{Math.round(message.attachmentSize / 1024)} KB</span>}
+                                                                    {message.attachmentSize && <span className="text-[10px] opacity-50">•</span>}
+                                                                    <span className="lowercase font-medium tracking-wide">pdf</span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                )}
-                                                {displayContent && (
-                                                    <div className="whitespace-pre-wrap">{displayContent}</div>
-                                                )}
+                                                    )}
+                                                    {displayContent && (
+                                                        <div className="whitespace-pre-wrap">{displayContent}</div>
+                                                    )}
+                                                </div>
+                                                <span className="text-[10px] text-gray-400 mt-1 px-1">
+                                                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
                                             </div>
-                                            <span className="text-[10px] text-gray-400 mt-1 px-1">
-                                                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
+                                        </div>
+                                    )
+                                })}
+
+                                {isThinking && (
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                                            <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+                                        </div>
+                                        <div className="text-xs text-gray-500 py-2">
+                                            Thinking...
                                         </div>
                                     </div>
-                                )
-                            })}
+                                )}
+                                <div ref={messagesEndRef} />
+                            </div>
+                        </ScrollArea>
 
-                            {isThinking && (
-                                <div className="flex items-start gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                                        <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
-                                    </div>
-                                    <div className="text-xs text-gray-500 py-2">
-                                        Thinking...
+                        {/* Input */}
+                        <div
+                            className={`p-3 border-t bg-white dark:bg-gray-900 relative transition-colors ${isDragging ? 'bg-blue-50 dark:bg-blue-950/30 border-t-blue-400' : ''
+                                }`}
+                            onDrop={handleDrop}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                        >
+                            {/* Drag overlay */}
+                            {isDragging && (
+                                <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-50/90 dark:bg-blue-950/80 border-2 border-dashed border-blue-400 rounded-lg pointer-events-none">
+                                    <div className="flex flex-col items-center gap-2 text-blue-500">
+                                        <FileText className="w-8 h-8" />
+                                        <span className="text-sm font-medium">Drop your PDF here</span>
                                     </div>
                                 </div>
                             )}
-                            <div ref={messagesEndRef} />
-                        </div>
-                    </ScrollArea>
 
-                    {/* Input */}
-                    <div
-                        className={`p-4 border-t bg-white dark:bg-gray-900 relative transition-colors ${isDragging ? 'bg-blue-50 dark:bg-blue-950/30 border-t-blue-400' : ''
-                            }`}
-                        onDrop={handleDrop}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                    >
-                        {/* Drag overlay */}
-                        {isDragging && (
-                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-50/90 dark:bg-blue-950/80 border-2 border-dashed border-blue-400 rounded-lg pointer-events-none">
-                                <div className="flex flex-col items-center gap-2 text-blue-500">
-                                    <FileText className="w-8 h-8" />
-                                    <span className="text-sm font-medium">Drop your PDF here</span>
+                            {/* PDF attachment indicator */}
+                            {attachedPdf && (
+                                <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg text-sm">
+                                    <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+                                    <span className="truncate text-blue-700 dark:text-blue-300 font-medium">{attachedPdf.name}</span>
+                                    <span className="text-xs text-blue-400 shrink-0">{attachedPdf.pageCount} pg{attachedPdf.pageCount > 1 ? 's' : ''}</span>
+                                    {attachedPdf.truncated && <span className="text-[10px] text-amber-500 shrink-0">(truncated)</span>}
+                                    <button
+                                        type="button"
+                                        onClick={() => setAttachedPdf(null)}
+                                        className="ml-auto p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-400 hover:text-blue-600 transition-colors shrink-0"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* PDF attachment indicator */}
-                        {attachedPdf && (
-                            <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg text-sm">
-                                <FileText className="w-4 h-4 text-blue-500 shrink-0" />
-                                <span className="truncate text-blue-700 dark:text-blue-300 font-medium">{attachedPdf.name}</span>
-                                <span className="text-xs text-blue-400 shrink-0">{attachedPdf.pageCount} pg{attachedPdf.pageCount > 1 ? 's' : ''}</span>
-                                {attachedPdf.truncated && <span className="text-[10px] text-amber-500 shrink-0">(truncated)</span>}
-                                <button
+                            {/* Extracting indicator */}
+                            {isExtracting && (
+                                <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 border rounded-lg text-sm text-gray-500">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Extracting text from PDF…
+                                </div>
+                            )}
+
+                            <form
+                                className="flex items-center gap-2"
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    handleSendMessage();
+                                }}
+                            >
+                                {/* Hidden file input */}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".pdf,application/pdf"
+                                    onChange={handleFileSelect}
+                                    className="hidden"
+                                />
+
+                                {/* Paperclip button */}
+                                <Button
                                     type="button"
-                                    onClick={() => setAttachedPdf(null)}
-                                    className="ml-auto p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-400 hover:text-blue-600 transition-colors shrink-0"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-[44px] w-[44px] shrink-0 text-gray-400 hover:text-blue-500 rounded-xl"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={isLoading || isExtracting}
+                                    title="Attach resume PDF"
                                 >
-                                    <X className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                        )}
+                                    <Paperclip className="w-5 h-5" />
+                                </Button>
 
-                        {/* Extracting indicator */}
-                        {isExtracting && (
-                            <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 border rounded-lg text-sm text-gray-500">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Extracting text from PDF…
-                            </div>
-                        )}
+                                <Input
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    onPaste={handlePaste}
+                                    placeholder={attachedPdf ? "What should I do with this resume?" : "Message AI Resume Builder..."}
+                                    className="min-h-[44px] py-3 resize-none flex-1 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-800"
+                                    disabled={isLoading}
+                                />
 
-                        <form
-                            className="flex items-center gap-2"
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                handleSendMessage();
-                            }}
-                        >
-                            {/* Hidden file input */}
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept=".pdf,application/pdf"
-                                onChange={handleFileSelect}
-                                className="hidden"
-                            />
-
-                            {/* Paperclip button */}
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-[44px] w-[44px] shrink-0 text-gray-400 hover:text-blue-500 rounded-xl"
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={isLoading || isExtracting}
-                                title="Attach resume PDF"
-                            >
-                                <Paperclip className="w-5 h-5" />
-                            </Button>
-
-                            <Input
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onPaste={handlePaste}
-                                placeholder={attachedPdf ? "What should I do with this resume?" : "Message AI Resume Builder..."}
-                                className="min-h-[44px] py-3 resize-none flex-1 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-800"
-                                disabled={isLoading}
-                            />
-
-                            {/* Send button */}
-                            <Button
-                                type="submit"
-                                size="icon"
-                                className="h-[44px] w-[44px] shrink-0 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm"
-                                disabled={isLoading || !input.trim()}
-                            >
-                                <Send className="w-4 h-4 ml-0.5" />
-                            </Button>
-                        </form>
-                        <p className="text-[10px] text-center text-gray-400 mt-3 flex items-center justify-center gap-1.5 opacity-80">
-                            <Sparkles className="w-3" />
-                            AI can make mistakes. Check important info.
-                        </p>
-                    </div>
-                </div>
-
-                {/* RIGHT PANEL: PREVIEW */}
-                <div className="flex-1 bg-gray-50 dark:bg-gray-950 flex flex-col min-w-0">
-                    <div className="h-14 border-b bg-white dark:bg-gray-900 flex items-center justify-between px-4">
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Live Preview</span>
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={handleDownload} disabled={isLoading}>
-                                {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                                Export PDF
-                            </Button>
+                                {/* Send button */}
+                                <Button
+                                    type="submit"
+                                    size="icon"
+                                    className="h-[44px] w-[44px] shrink-0 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm"
+                                    disabled={isLoading || !input.trim()}
+                                >
+                                    <Send className="w-4 h-4 ml-0.5" />
+                                </Button>
+                            </form>
+                            <p className="text-[10px] text-center text-gray-400 mt-2 flex items-center justify-center opacity-80">
+                                AI can make mistakes. Check important info.
+                            </p>
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-auto p-4 sm:p-8 flex justify-center bg-gray-50/30 dark:bg-gray-950/50 relative">
-                        {isThinking && !hasGenerated && <PreviewLoadingState />}
-
-                        {(!hasGenerated && !resumeData.content?.personalInfo?.firstName && !resumeData.content?.summary && (!resumeData.content?.experience || resumeData.content.experience.length === 0)) ? (
-                            <PreviewEmptyState onSuggestionClick={(prompt) => setInput(prompt)} />
-                        ) : (
-                            <div style={{ width: '8.27in', flexShrink: 0 }} className="relative z-0">
-                                <div id="resume-preview-container" ref={exportRef} className="shadow-lg bg-white resume-print-area">
-                                    <UniversalRenderer
-                                        data={resumeData}
-                                        onEdit={handleInlineEdit}
-                                    />
-                                </div>
+                    {/* RIGHT PANEL: PREVIEW */}
+                    <div className="w-1/2 shrink-0 lg:shrink lg:flex-1 bg-gray-50 dark:bg-gray-950 flex flex-col min-w-0 h-full">
+                        <div className="h-14 border-b bg-white dark:bg-gray-900 flex items-center justify-between px-4">
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Live Preview</span>
+                            <div className="flex items-center gap-2">
+                                <Button variant="outline" size="sm" onClick={handleDownload} disabled={isLoading}>
+                                    {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                                    Export PDF
+                                </Button>
                             </div>
-                        )}
+                        </div>
+
+                        <div className="flex-1 overflow-auto p-4 sm:p-8 flex justify-center bg-gray-50/30 dark:bg-gray-950/50 relative">
+                            {isThinking && !hasGenerated && <PreviewLoadingState />}
+
+                            {(!hasGenerated && !resumeData.content?.personalInfo?.firstName && !resumeData.content?.summary && (!resumeData.content?.experience || resumeData.content.experience.length === 0)) ? (
+                                <PreviewEmptyState onSuggestionClick={(prompt) => setInput(prompt)} />
+                            ) : (
+                                <div className="w-full h-full flex justify-center" style={{ overflowX: isMobile ? 'hidden' : 'auto' }}>
+                                    <div style={{
+                                        width: '8.27in',
+                                        flexShrink: 0,
+                                        transform: isMobile ? `scale(${Math.min((screenWidth - 32) / 794, 1)})` : 'none',
+                                        transformOrigin: 'top center'
+                                    }} className="relative z-0">
+                                        <div id="resume-preview-container" ref={exportRef} className="shadow-lg bg-white resume-print-area">
+                                            <UniversalRenderer
+                                                data={resumeData}
+                                                onEdit={handleInlineEdit}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div >
-        </div >
+
+            {/* Mobile Bottom Navigation */}
+            {isMobile && (
+                <div className="lg:hidden flex border-t border-border bg-white dark:bg-gray-900 p-1.5 shrink-0 z-40 relative pb-safe">
+                    {/* Sliding Pill Background */}
+                    <div
+                        className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-blue-50 dark:bg-blue-900/40 rounded-lg transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                        style={{ transform: mobileView === 'preview' ? 'translateX(100%)' : 'translateX(0)' }}
+                    />
+
+                    <button
+                        onClick={() => setMobileView('chat')}
+                        className={`flex-1 flex flex-row items-center justify-center py-2.5 px-3 rounded-lg text-xs font-semibold transition-colors duration-300 gap-2 relative z-10 ${mobileView === 'chat' ? 'text-blue-700 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                    >
+                        <MessageSquare className="w-4 h-4" />
+                        Chat
+                    </button>
+                    <button
+                        onClick={() => setMobileView('preview')}
+                        className={`flex-1 flex flex-row items-center justify-center py-2.5 px-3 rounded-lg text-xs font-semibold transition-colors duration-300 gap-2 relative z-10 ${mobileView === 'preview' ? 'text-blue-700 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                    >
+                        <FileText className="w-4 h-4" />
+                        Preview
+                    </button>
+                </div>
+            )}
+
+            <PuterAuthModal
+                isOpen={showAuthModal}
+                onClose={handleAuthCancel}
+                onConnect={handleAuthConnect}
+            />
+        </div>
     );
 };
 

@@ -2,6 +2,7 @@ import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { PROMPTS } from './prompts';
 import { ChatMode } from './dto';
 import * as CryptoJS from 'crypto-js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 /** Read at runtime so dotenv has loaded */
 const getSharedSecret = () => process.env.SHARED_SECRET || process.env.VITE_SHARED_SECRET || '';
@@ -44,41 +45,103 @@ export class AiService {
     }
 
     /**
-     * Enhance content — dedicated endpoint for field-level enhancement.
+     * Enhance content — dedicated endpoint for field-level enhancement using Gemini.
      */
     async enhance(
         content: string,
-        token: string,
+        token?: string, // Kept in signature for backwards compat, unused internally
         field?: string,
+        rejectedResponses?: string[],
     ): Promise<{ enhancedContent: string; originalContent: string; field?: string }> {
-        const userPrompt = field
-            ? `Field: ${field}\nContent: "${content}"\n\nKeep the same core information but make it professional. Output ONLY the enhanced content.`
-            : content;
-
-        const messages: PuterMessage[] = [
-            { role: 'system', content: PROMPTS.ENHANCE },
-            { role: 'user', content: userPrompt },
-        ];
-
-        const data = await this.callPuterApi(messages, token);
-
-        // Extract text from Puter response
-        let enhancedContent = '';
-        if (data?.message?.content) {
-            enhancedContent = data.message.content;
-        } else if (data?.result?.message?.content) {
-            enhancedContent = data.result.message.content;
-        } else if (typeof data === 'string') {
-            enhancedContent = data;
-        } else {
-            enhancedContent = JSON.stringify(data);
+        // Validation length limits
+        if (!content || typeof content !== 'string') {
+            throw new HttpException('Content is required', HttpStatus.BAD_REQUEST);
+        }
+        if (content.length > 5000) {
+            throw new HttpException('Content too long (max 5000 characters)', HttpStatus.BAD_REQUEST);
         }
 
-        return {
-            enhancedContent: enhancedContent.trim(),
-            originalContent: content,
-            field,
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            this.logger.error('GEMINI_API_KEY is not set in the environment.');
+            throw new HttpException('AI service is currently unavailable.', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        // Apply field-specific prompts to improve AI understanding
+        const getRandomPrompt = (fld: string, txt: string) => {
+            const promptVariations = {
+                summary: [
+                    `First, validate if this content is actually a professional summary. If it's not related to professional background, skills, or career information, respond with "INVALID_CONTENT: This does not appear to be a professional summary."\nIf valid, enhance it by improving language, adding action verbs, and making it more impactful. Keep the same core information. Output ONLY the enhanced version. Input: "${txt}"`,
+                    `First, validate if this content is actually a professional summary. If it's not related to professional background, skills, or career information, respond with "INVALID_CONTENT: This does not appear to be a professional summary."\nIf valid, refine it to be more ATS-friendly and impactful. Keep the same core content. Output ONLY the enhanced version. Input: "${txt}"`
+                ],
+                jobDescription: [
+                    `First, validate if this content is actually a job description. If not, respond with "INVALID_CONTENT: This does not appear to be a job description."\nIf valid, enhance it by improving the language and structure. Keep the core responsibilities. Output ONLY the enhanced version. Input: "${txt}"`,
+                    `First, validate if this content is actually a job description. If not, respond with "INVALID_CONTENT: This does not appear to be a job description."\nIf valid, refine it to be more professional and impactful. Output ONLY the enhanced version. Input: "${txt}"`
+                ],
+                skills: [
+                    `First, validate if this is a skill list. If not, respond with "INVALID_CONTENT: This does not appear to be a skill list."\nIf valid, enhance it by improving language and adding related skills. Return ONLY the enhanced skill list. Input: "${txt}"`
+                ]
+            };
+
+            const fallbackPrompt = `Keep the same core information but make it more professional. Output ONLY the enhanced version. Input: "${txt}"`;
+            const variations = promptVariations[fld as keyof typeof promptVariations];
+
+            if (variations && variations.length > 0) {
+                const randomIndex = Math.floor(Math.random() * variations.length);
+                return variations[randomIndex];
+            }
+            return fallbackPrompt;
         };
+
+        const basePrompt = field ? getRandomPrompt(field, content) : `Keep the same core details but make it highly professional. Output ONLY the enhanced content. Input: "${content}"`;
+
+        let avoidInstructions = '';
+        if (rejectedResponses && rejectedResponses.length > 0) {
+            avoidInstructions = `\n\nIMPORTANT: Do NOT generate any of these previously rejected responses:\n${rejectedResponses.map((r, i) => `${i + 1}. "${r}"`).join('\n')}\nGenerate a completely different and unique enhancement that is not similar to any of the above.`;
+        }
+
+        const systemInstruction = `You are a resume enhancement assistant. Your job is to IMPROVE and ENHANCE the existing content, not replace it entirely. Keep the same core information and meaning, but make it more professional, clear, and impactful. Always provide direct, concise responses without explanations, options, or markdown formatting. Return only the enhanced content.`;
+        const userPrompt = `${basePrompt}${avoidInstructions}`;
+
+        try {
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+            const model = genAI.getGenerativeModel({
+                model: modelName,
+                systemInstruction,
+            });
+
+            const result = await model.generateContent(userPrompt);
+            const response = result.response;
+            let enhancedContent = response.text();
+
+            // Clean up response string
+            enhancedContent = enhancedContent
+                .replace(/^Enhanced:\s*/i, '')
+                .replace(/^Skills:\s*/i, '')
+                .replace(/^Titles:\s*/i, '')
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/\*(.*?)\*/g, '$1')
+                .replace(/```(json)?\n?/i, '')
+                .replace(/```\n?/i, '')
+                .trim();
+
+            if (enhancedContent.startsWith('INVALID_CONTENT:')) {
+                throw new HttpException(enhancedContent.replace('INVALID_CONTENT:', '').trim(), HttpStatus.BAD_REQUEST);
+            }
+
+            return {
+                enhancedContent,
+                originalContent: content,
+                field,
+            };
+        } catch (error) {
+            this.logger.error('Error calling Gemini API for enhancement:', error);
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException('Failed to enhance content via AI provider.', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**

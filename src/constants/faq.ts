@@ -17,12 +17,22 @@ export const faqItems = [
     {
         question: "Is the AI enhancement free?",
         answer:
-            "Yes, the AI enhancement feature is completely free! You get 5 enhancement attempts per field per resume. The AI validates content relevance and provides professional improvements to make your resume stand out to employers and ATS systems."
+            "Yes, the AI enhancement feature is completely free! The AI validates content relevance and provides professional improvements to make your resume stand out to employers and ATS systems."
     },
     {
         question: "How does AI enhancement work?",
         answer:
-            "Simply click the 'Enhance' button next to supported fields like Professional Summary or Job Descriptions. The AI analyzes your content and provides improved versions with better language, action verbs, and ATS optimization. You can accept the suggestion or reject it to keep your original content. Each enhancement attempt gives you different options."
+            "Simply click the 'Enhance' button next to supported fields like Professional Summary or Job Descriptions. The AI analyzes your content and provides improved versions with better language, action verbs, and ATS optimization. You can accept the suggestion or reject it to keep your original content."
+    },
+    {
+        question: "How do I use the AI Resume Builder?",
+        answer:
+            "From the home page or editor, click on 'AI Builder'. You'll be greeted by an interactive chat interface powered by Puter.js. Simply type a prompt like 'I am a software engineer with 5 years of React experience' or answer the AI's questions. The AI will generate a complete, structured resume draft for you securely and boundlessly. Once generated, you can refine it in the chat or jump straight into the Editor to tweak the final layout!"
+    },
+    {
+        question: "Is the AI Resume Builder free forever?",
+        answer:
+            "Yes! Our AI Resume Builder is completely free to use without any hidden paywalls or limits. Through our integration with Puter.js, you get boundless, free access to generate and rebuild your resume as many times as you need."
     },
     {
         question: "Is my data safe when using AI enhancement?",
@@ -37,8 +47,8 @@ export const faqItems = [
     {
         question: "Is my data really private?",
         answer:
-          "Yes. BuildMyResume takes privacy seriously. When you export your resume as a PDF, your data is encrypted in your browser and sent to our edge function only for generating the file — it’s never stored or logged. If you choose to publish your resume, the encrypted data is saved securely and can only be accessed using your unique link. Even we can’t read it — only you, with the link, can view or edit it."
-    },      
+            "Yes. BuildMyResume takes privacy seriously. When you export your resume as a PDF, it is generated locally right in your browser — your data never goes to a third-party server for export. If you choose to publish your resume, the encrypted data is saved securely and can only be accessed using your unique link. Even we can’t read it — only you, with the link, can view or edit it."
+    },
     {
         question: "What file formats can I export to?",
         answer:

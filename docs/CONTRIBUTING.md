@@ -74,10 +74,9 @@ npm run test         # Run tests
 npm run test:watch   # Run tests in watch mode
 npm run test:coverage # Run tests with coverage
 
-# Firebase Functions
-cd functions
-npm run build        # Build Firebase Functions
-npm run deploy       # Deploy to Firebase
+# Backend API
+cd api
+pnpm run start:dev   # Start the NestJS AI Proxy locally
 ```
 
 ## 🔄 Making Changes

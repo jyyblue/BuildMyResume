@@ -9,7 +9,10 @@ export class EnhanceRequestDto {
     @IsOptional()
     field?: string;
 
+    @IsOptional()
+    rejectedResponses?: string[];
+
+    @IsOptional()
     @IsString()
-    @IsNotEmpty({ message: 'Puter auth token is required' })
-    token: string;
+    token?: string; // Kept for backwards compatibility but not required
 }

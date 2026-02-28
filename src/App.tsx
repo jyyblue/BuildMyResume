@@ -38,7 +38,7 @@ const App = () => (
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/editor" element={<Editor />} />
                 <Route path="/editor/:id" element={<Editor />} />
-                <Route path="/ai-builder" element={<AIBuilder />} />
+                <Route path="/ai-resume-builder" element={<AIBuilder />} />
                 <Route path="/view/:id" element={<ViewResume />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/about" element={<About />} />
