@@ -1,4 +1,3 @@
-# Exclude test files and env from Vercel deployment
-test
-node_modules
-.env
+src/
+test/
+node_modules/
