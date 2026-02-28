@@ -601,7 +601,7 @@ const AIBuilder = () => {
                 stream: false
             };
 
-            const response = await fetch('http://localhost:4000/ai/chat', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/ai/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

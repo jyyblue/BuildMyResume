@@ -40,7 +40,7 @@ export const enhanceContentWithAI = async (
   rejectedResponses?: string[]
 ): Promise<AIEnhancementResponse> => {
   try {
-    const API_URL = 'http://localhost:4000/ai/enhance';
+    const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/ai/enhance`;
 
     const response = await fetch(API_URL, {
       method: 'POST',
