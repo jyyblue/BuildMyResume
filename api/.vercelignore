@@ -1,0 +1,5 @@
+# Exclude test files and unnecessary directories from Vercel deployment
+test
+src
+node_modules
+.env
