@@ -20,9 +20,9 @@ const Footer = () => {
             <div className="flex items-center space-x-2">
               <span className="text-sm text-muted-foreground">
                 Created by{" "}
-                <a 
-                  href="https://linkedin.com/in/muhammed-rashid-v" 
-                  target="_blank" 
+                <a
+                  href="https://rashidv.dev"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline font-medium"
                 >
@@ -67,7 +67,7 @@ const Footer = () => {
           {/* GitHub Stats and Product Hunt Badge */}
           <div className="flex flex-col items-center space-y-4 pt-4">
             <GitHubStats showLanguage={false} className="text-center" />
-            
+
             {/* Product Hunt Badge */}
             <div className="flex justify-center">
               <a

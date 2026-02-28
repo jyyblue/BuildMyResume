@@ -21,9 +21,9 @@ interface SEOProps {
 const SEO = ({
   title = 'BuildMyResume - Open Source, AI-Powered Resume Builder | ATS-Friendly Templates',
   description = 'Create professional, ATS-optimized resumes with our open source resume builder. Features 15+ templates, AI-powered content enhancement, and intelligent resume generation. No sign-up required, 100% free, and end-to-end encrypted.',
-  keywords = 'resume builder, open source resume builder, ATS optimized resume, professional resume templates, CV builder, job application, career tools, resume maker, online resume builder, AI resume enhancement, privacy resume builder, open source resume, resume templates, PDF resume',
-      image = `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/og-image.png`,
-    url = import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live',
+  keywords = 'resume builder, resume builder in buildmyresume.live, open source resume builder, ATS optimized resume, professional resume templates, CV builder, job application, AI resume builder, online resume builder, AI resume enhancement, privacy resume builder, PDF resume',
+  image = `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/og-image.png`,
+  url = import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live',
   type = 'website',
   publishedTime,
   modifiedTime,
@@ -52,10 +52,10 @@ const SEO = ({
       <meta name="keywords" content={keywords} />
       <meta name="author" content={author} />
       <meta name="robots" content={robots} />
-      
+
       {/* Canonical URL */}
       {fullUrl && <link rel="canonical" href={fullUrl} />}
-      
+
       {/* Open Graph / Facebook */}
       <meta property="og:type" content={type} />
       <meta property="og:url" content={fullUrl} />
@@ -66,7 +66,7 @@ const SEO = ({
       <meta property="og:image:height" content="630" />
       <meta property="og:site_name" content="BuildMyResume" />
       <meta property="og:locale" content="en_US" />
-      
+
       {/* Twitter */}
       <meta property="twitter:card" content="summary_large_image" />
       <meta property="twitter:url" content={fullUrl} />
@@ -74,7 +74,7 @@ const SEO = ({
       <meta property="twitter:description" content={description} />
       <meta property="twitter:image" content={image} />
       <meta name="twitter:creator" content="@buildmyresume" />
-      
+
       {/* Article specific meta tags */}
       {type === 'article' && (
         <>
@@ -87,35 +87,35 @@ const SEO = ({
           ))}
         </>
       )}
-      
+
       {/* Additional structured data for articles */}
       {type === 'article' && (
         <script type="application/ld+json">
-        {JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Article",
-          "headline": fullTitle,
-          "description": description,
-          "image": image,
-          "author": {
-            "@type": "Organization",
-            "name": author
-          },
-          "publisher": {
-            "@type": "Organization",
-            "name": "BuildMyResume",
-            "logo": {
-              "@type": "ImageObject",
-              "url": `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/logo.png`
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Article",
+            "headline": fullTitle,
+            "description": description,
+            "image": image,
+            "author": {
+              "@type": "Organization",
+              "name": author
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "BuildMyResume",
+              "logo": {
+                "@type": "ImageObject",
+                "url": `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/logo.png`
+              }
+            },
+            "datePublished": publishedTime,
+            "dateModified": modifiedTime,
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": fullUrl
             }
-          },
-          "datePublished": publishedTime,
-          "dateModified": modifiedTime,
-          "mainEntityOfPage": {
-            "@type": "WebPage",
-            "@id": fullUrl
-          }
-        })}
+          })}
         </script>
       )}
     </Helmet>

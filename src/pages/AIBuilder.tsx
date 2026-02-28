@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bot, User, Sparkles, Send, Download, ArrowLeft, Loader2, RefreshCw, Trash2, History, Plus, Paperclip, X, FileText, MessageSquare } from "lucide-react";
+import { Bot, User, Sparkles, Send, Download, ArrowLeft, Loader2, RefreshCw, Trash2, History, Plus, Paperclip, X, FileText, MessageSquare, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -105,6 +105,55 @@ const AIBuilder = () => {
     const [mobileView, setMobileView] = useState<'chat' | 'preview'>('chat');
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
     const [screenWidth, setScreenWidth] = useState(window.innerWidth);
+    const [mobileZoom, setMobileZoom] = useState(1);
+    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+    const [isPanning, setIsPanning] = useState(false);
+    const dragStartRef = useRef({ x: 0, y: 0 });
+    const panStartRef = useRef({ x: 0, y: 0 });
+    const previewContainerRef = useRef<HTMLDivElement>(null);
+
+    const handleZoomIn = () => setMobileZoom(prev => Math.min(prev + 0.15, 2.5));
+    const handleZoomOut = () => setMobileZoom(prev => Math.max(prev - 0.15, 0.3));
+    const handleZoomReset = () => { setMobileZoom(1); setPanOffset({ x: 0, y: 0 }); };
+
+    // Drag-to-pan handlers (only active when zoomed in and NOT on editable elements)
+    const isEditableTarget = useCallback((target: EventTarget | null): boolean => {
+        if (!target || !(target instanceof HTMLElement)) return false;
+        // Skip panning when the user taps on editable content
+        return (
+            target.isContentEditable ||
+            target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.closest('[contenteditable="true"]') !== null
+        );
+    }, []);
+
+    const handlePanStart = useCallback((clientX: number, clientY: number, target: EventTarget | null) => {
+        if (mobileZoom <= 1) return;
+        if (isEditableTarget(target)) return; // Don't pan when editing text
+        setIsPanning(true);
+        dragStartRef.current = { x: clientX, y: clientY };
+        panStartRef.current = { ...panOffset };
+    }, [mobileZoom, panOffset, isEditableTarget]);
+
+    const handlePanMove = useCallback((clientX: number, clientY: number) => {
+        if (!isPanning) return;
+        const dx = clientX - dragStartRef.current.x;
+        const dy = clientY - dragStartRef.current.y;
+        setPanOffset({
+            x: panStartRef.current.x + dx,
+            y: panStartRef.current.y + dy
+        });
+    }, [isPanning]);
+
+    const handlePanEnd = useCallback(() => {
+        setIsPanning(false);
+    }, []);
+
+    // Reset pan when zoom resets to 1 or below
+    useEffect(() => {
+        if (mobileZoom <= 1) setPanOffset({ x: 0, y: 0 });
+    }, [mobileZoom]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -254,38 +303,34 @@ const AIBuilder = () => {
     // ---- Inline Edit handler ----
     const handleInlineEdit: OnEditFn = useCallback((field: string, value: any) => {
         setResumeData(prev => {
-            const updated = JSON.parse(JSON.stringify(prev)); // Deep clone
-            const keys = field.split('.');
-            let target = updated as any;
+            try {
+                const updated = JSON.parse(JSON.stringify(prev)); // Deep clone
+                const keys = field.split('.');
+                let target = updated as any;
 
-            for (let i = 0; i < keys.length - 1; i++) {
-                const key = keys[i];
-                const nextKey = keys[i + 1];
-                // If next key is a number, the current key is an array
-                if (!isNaN(Number(nextKey))) {
-                    target = target[key];
-                } else if (!isNaN(Number(key))) {
-                    target = target[Number(key)];
-                } else {
+                for (let i = 0; i < keys.length - 1; i++) {
+                    const key = !isNaN(Number(keys[i])) ? Number(keys[i]) : keys[i];
+                    const nextKey = keys[i + 1];
+
+                    // Auto-create missing intermediate objects/arrays
+                    if (target[key] === undefined || target[key] === null) {
+                        target[key] = !isNaN(Number(nextKey)) ? [] : {};
+                    }
                     target = target[key];
                 }
-            }
 
-            const lastKey = keys[keys.length - 1];
-            if (!isNaN(Number(lastKey))) {
-                // Array index — for highlight items
-                const parentKey = keys[keys.length - 2];
-                if (!isNaN(Number(parentKey))) {
-                    // Nested: e.g. content.experience.0.highlights.1
+                const lastKey = keys[keys.length - 1];
+                if (!isNaN(Number(lastKey))) {
                     target[Number(lastKey)] = value;
                 } else {
-                    target[Number(lastKey)] = value;
+                    target[lastKey] = value;
                 }
-            } else {
-                target[lastKey] = value;
-            }
 
-            return updated;
+                return updated;
+            } catch (e) {
+                console.warn('[AIBuilder] Inline edit failed for field:', field, e);
+                return prev; // Return unchanged state on error
+            }
         });
     }, []);
 
@@ -1069,10 +1114,23 @@ const AIBuilder = () => {
                     <div className="w-1/2 shrink-0 lg:shrink lg:flex-1 bg-gray-50 dark:bg-gray-950 flex flex-col min-w-0 h-full">
                         <div className="h-14 border-b bg-white dark:bg-gray-900 flex items-center justify-between px-4">
                             <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Live Preview</span>
-                            <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" onClick={handleDownload} disabled={isLoading}>
-                                    {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                                    Export PDF
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                {isMobile && hasGenerated && (
+                                    <>
+                                        <Button variant="outline" size="icon" onClick={handleZoomOut} disabled={mobileZoom <= 0.3} className="h-8 w-8">
+                                            <ZoomOut className="h-3.5 w-3.5" />
+                                        </Button>
+                                        <Button variant="outline" size="icon" onClick={handleZoomReset} className="h-8 w-8" title="Fit to width">
+                                            <Maximize2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                        <Button variant="outline" size="icon" onClick={handleZoomIn} disabled={mobileZoom >= 2.5} className="h-8 w-8">
+                                            <ZoomIn className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </>
+                                )}
+                                <Button variant="outline" size={isMobile ? "icon" : "sm"} onClick={handleDownload} disabled={isLoading} className={isMobile ? "h-8 w-8" : ""}>
+                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                    {!isMobile && <span className="ml-2">Export PDF</span>}
                                 </Button>
                             </div>
                         </div>
@@ -1083,12 +1141,31 @@ const AIBuilder = () => {
                             {(!hasGenerated && !resumeData.content?.personalInfo?.firstName && !resumeData.content?.summary && (!resumeData.content?.experience || resumeData.content.experience.length === 0)) ? (
                                 <PreviewEmptyState onSuggestionClick={(prompt) => setInput(prompt)} />
                             ) : (
-                                <div className="w-full h-full flex justify-center" style={{ overflowX: isMobile ? 'hidden' : 'auto' }}>
+                                <div
+                                    className="w-full h-full flex justify-center"
+                                    ref={previewContainerRef}
+                                    style={{
+                                        overflowX: isMobile ? 'hidden' : 'auto',
+                                        cursor: isMobile && mobileZoom > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
+                                        touchAction: mobileZoom > 1 ? 'none' : 'auto',
+                                        userSelect: isPanning ? 'none' : 'auto'
+                                    }}
+                                    onMouseDown={(e) => { if (isMobile) handlePanStart(e.clientX, e.clientY, e.target); }}
+                                    onMouseMove={(e) => { if (isMobile) handlePanMove(e.clientX, e.clientY); }}
+                                    onMouseUp={handlePanEnd}
+                                    onMouseLeave={handlePanEnd}
+                                    onTouchStart={(e) => { if (isMobile && e.touches.length === 1) handlePanStart(e.touches[0].clientX, e.touches[0].clientY, e.target); }}
+                                    onTouchMove={(e) => { if (isMobile && e.touches.length === 1) handlePanMove(e.touches[0].clientX, e.touches[0].clientY); }}
+                                    onTouchEnd={handlePanEnd}
+                                >
                                     <div style={{
                                         width: '8.27in',
                                         flexShrink: 0,
-                                        transform: isMobile ? `scale(${Math.min((screenWidth - 32) / 794, 1)})` : 'none',
-                                        transformOrigin: 'top center'
+                                        transform: isMobile
+                                            ? `translate(${panOffset.x}px, ${panOffset.y}px) scale(${Math.min((screenWidth - 32) / 794, 1) * mobileZoom})`
+                                            : 'none',
+                                        transformOrigin: 'top center',
+                                        transition: isPanning ? 'none' : 'transform 0.2s ease'
                                     }} className="relative z-0">
                                         <div id="resume-preview-container" ref={exportRef} className="shadow-lg bg-white resume-print-area">
                                             <UniversalRenderer

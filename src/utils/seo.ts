@@ -237,7 +237,7 @@ export const generateCanonicalUrl = (path: string): string => {
 
 // Generate sitemap entry
 export const generateSitemapEntry = (path: string, priority: number = 0.5, changefreq: string = 'monthly') => ({
-      loc: `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}${path}`,
+  loc: `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}${path}`,
   lastmod: new Date().toISOString().split('T')[0],
   changefreq,
   priority
@@ -249,5 +249,5 @@ export const SEO_CONSTANTS = {
   SITE_URL: import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live',
   DEFAULT_IMAGE: `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/og-image.png`,
   DEFAULT_AUTHOR: 'Muhammed Rashid V',
-  DEFAULT_KEYWORDS: 'resume builder, CV builder, ATS friendly resume, professional resume, open source resume builder, privacy resume builder, open source resume, job application, career tools',
+  DEFAULT_KEYWORDS: 'resume builder, resume builder in buildmyresume.live, CV builder, ATS friendly resume, professional resume, open source resume builder, privacy resume builder, AI resume builder, job application, career tools',
 } as const; 

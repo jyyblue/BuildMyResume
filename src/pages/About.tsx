@@ -5,11 +5,11 @@ import { AppNavigation } from "@/components/AppNavigation";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Link } from "react-router-dom";
-import { 
-  Linkedin, 
-  Github, 
-  Instagram, 
-  Globe, 
+import {
+  Linkedin,
+  Github,
+  Instagram,
+  Globe,
   Heart,
   Shield,
   Zap,
@@ -56,140 +56,140 @@ const About = () => {
 
   return (
     <>
-      <SEO 
+      <SEO
         title="About BuildMyResume - Created by Muhammed Rashid V"
         description="Learn about BuildMyResume, a privacy-first resume builder created by Muhammed Rashid V. Discover our mission to provide free, user-friendly tools that respect your privacy."
-        keywords="about BuildMyResume, Muhammed Rashid V, privacy-first resume builder, open source resume tool, open source resume builder"
+        keywords="about BuildMyResume, Muhammed Rashid V, open source resume builder in buildmyresume.live, AI resume builder, open source resume tool"
         url={`${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/about`}
         image={`${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/about-preview.png`}
       />
-      
+
       {/* Enhanced Structured Data for About Page */}
       <Helmet>
         {/* Person Schema for Creator */}
         <script type="application/ld+json">
-        {JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Person",
-          "name": "Muhammed Rashid V",
-          "jobTitle": "Software Engineer",
-          "description": "Developer passionate about building privacy-first, user-friendly tools. Creator of BuildMyResume, a free and open-source resume builder.",
-                  "url": `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/about`,
-        "image": `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/creator-profile.jpg`,
-          "sameAs": [
-            "https://linkedin.com/in/muhammed-rashid-v",
-            "https://github.com/rashidrashiii",
-            "https://rashidv.dev"
-          ],
-          "worksFor": {
-            "@type": "Organization",
-            "name": "BuildMyResume"
-          },
-          "knowsAbout": [
-            "Web Development",
-            "React",
-            "TypeScript",
-            "Privacy-first Development",
-            "Open Source Software",
-            "Resume Building Tools"
-          ],
-          "alumniOf": {
-            "@type": "Organization",
-            "name": "BuildMyResume"
-          }
-        })}
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Person",
+            "name": "Muhammed Rashid V",
+            "jobTitle": "Software Engineer",
+            "description": "Developer passionate about building privacy-first, user-friendly tools. Creator of BuildMyResume, a free and open-source resume builder.",
+            "url": `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/about`,
+            "image": `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/creator-profile.jpg`,
+            "sameAs": [
+              "https://linkedin.com/in/muhammed-rashid-v",
+              "https://github.com/rashidrashiii",
+              "https://rashidv.dev"
+            ],
+            "worksFor": {
+              "@type": "Organization",
+              "name": "BuildMyResume"
+            },
+            "knowsAbout": [
+              "Web Development",
+              "React",
+              "TypeScript",
+              "Privacy-first Development",
+              "Open Source Software",
+              "Resume Building Tools"
+            ],
+            "alumniOf": {
+              "@type": "Organization",
+              "name": "BuildMyResume"
+            }
+          })}
         </script>
 
         {/* About Page Schema */}
         <script type="application/ld+json">
-        {JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "WebPage",
-          "name": "About BuildMyResume - Created by Muhammed Rashid V",
-          "description": "Learn about BuildMyResume, a privacy-first resume builder created by Muhammed Rashid V. Discover our mission to provide free, user-friendly tools that respect your privacy.",
-          "url": `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/about`,
-          "mainEntity": {
-            "@type": "Person",
-            "name": "Muhammed Rashid V",
-            "jobTitle": "Software Engineer",
-            "description": "Developer passionate about building privacy-first, user-friendly tools. Creator of BuildMyResume.",
-            "url": "https://linkedin.com/in/muhammed-rashid-v"
-          },
-          "author": {
-            "@type": "Person",
-            "name": "Muhammed Rashid V"
-          },
-          "publisher": {
-            "@type": "Organization",
-            "name": "BuildMyResume",
-            "url": "https://buildmyresume.live"
-          },
-          "breadcrumb": {
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Home",
-                "item": `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}`
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": "About",
-                "item": `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/about`
-              }
-            ]
-          }
-        })}
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": "About BuildMyResume - Created by Muhammed Rashid V",
+            "description": "Learn about BuildMyResume, a privacy-first resume builder created by Muhammed Rashid V. Discover our mission to provide free, user-friendly tools that respect your privacy.",
+            "url": `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/about`,
+            "mainEntity": {
+              "@type": "Person",
+              "name": "Muhammed Rashid V",
+              "jobTitle": "Software Engineer",
+              "description": "Developer passionate about building privacy-first, user-friendly tools. Creator of BuildMyResume.",
+              "url": "https://linkedin.com/in/muhammed-rashid-v"
+            },
+            "author": {
+              "@type": "Person",
+              "name": "Muhammed Rashid V"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "BuildMyResume",
+              "url": "https://buildmyresume.live"
+            },
+            "breadcrumb": {
+              "@type": "BreadcrumbList",
+              "itemListElement": [
+                {
+                  "@type": "ListItem",
+                  "position": 1,
+                  "name": "Home",
+                  "item": `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}`
+                },
+                {
+                  "@type": "ListItem",
+                  "position": 2,
+                  "name": "About",
+                  "item": `${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/about`
+                }
+              ]
+            }
+          })}
         </script>
 
         {/* FAQ Schema for About Page */}
         <script type="application/ld+json">
-        {JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          "mainEntity": [
-            {
-              "@type": "Question",
-              "name": "Who created BuildMyResume?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "BuildMyResume was created by Muhammed Rashid V, a software engineer passionate about building privacy-first, user-friendly tools. He believes technology should serve people, not corporations."
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Who created BuildMyResume?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "BuildMyResume was created by Muhammed Rashid V, a software engineer passionate about building privacy-first, user-friendly tools. He believes technology should serve people, not corporations."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is Muhammed Rashid V's background?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Muhammed Rashid V is a developer with expertise in React, TypeScript, and web development. He focuses on creating tools that prioritize user privacy and simplicity."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why was BuildMyResume created?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "BuildMyResume was created from frustration with existing resume builders that had paywalls, hidden pricing, or required sign-ups. Muhammed wanted to build something better - free, private, and user-friendly."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How can I contact Muhammed Rashid V?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "You can connect with Muhammed Rashid V on LinkedIn at https://linkedin.com/in/muhammed-rashid-v, visit his website at https://rashidv.dev, or use the contact form on this website."
+                }
               }
-            },
-            {
-              "@type": "Question",
-              "name": "What is Muhammed Rashid V's background?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Muhammed Rashid V is a developer with expertise in React, TypeScript, and web development. He focuses on creating tools that prioritize user privacy and simplicity."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "Why was BuildMyResume created?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "BuildMyResume was created from frustration with existing resume builders that had paywalls, hidden pricing, or required sign-ups. Muhammed wanted to build something better - free, private, and user-friendly."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "How can I contact Muhammed Rashid V?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "You can connect with Muhammed Rashid V on LinkedIn at https://linkedin.com/in/muhammed-rashid-v, visit his website at https://rashidv.dev, or use the contact form on this website."
-              }
-            }
-          ]
-        })}
+            ]
+          })}
         </script>
       </Helmet>
-      
+
       <div className="min-h-screen bg-gradient-subtle">
         <AppNavigation showGitHubButton={true} />
-        
+
         <main className="container mx-auto px-4 py-16">
           {/* Header */}
           <div className="text-center space-y-6 mb-16">
@@ -204,7 +204,7 @@ const About = () => {
                 </span>
               </h1>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                A privacy-first, open-source resume builder created by Muhammed Rashid V. 
+                A privacy-first, open-source resume builder created by Muhammed Rashid V.
                 Built for people who value simplicity, privacy, and freedom.
               </p>
             </div>
@@ -219,25 +219,25 @@ const About = () => {
                     <div>
                       <h2 className="text-3xl font-bold mb-4">Meet the Creator</h2>
                       <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                        Hi! I'm <strong>Muhammed Rashid V</strong>, a developer passionate about 
-                        building tools that put users first. I believe technology should serve 
+                        Hi! I'm <strong>Muhammed Rashid V</strong>, a developer passionate about
+                        building tools that put users first. I believe technology should serve
                         people, not corporations.
                       </p>
                       <p className="text-muted-foreground leading-relaxed mb-6">
-                        BuildMyResume was born from my own frustration. I was trying to create 
-                        an ATS-friendly resume and kept hitting paywalls, hidden pricing, or 
+                        BuildMyResume was born from my own frustration. I was trying to create
+                        an ATS-friendly resume and kept hitting paywalls, hidden pricing, or
                         tools that required sign-up just to download. I wanted something better.
                       </p>
                       <p className="text-muted-foreground leading-relaxed">
-                        So I built it. And since others might want the same, I made it open 
+                        So I built it. And since others might want the same, I made it open
                         source and free for everyone.
                       </p>
                     </div>
-                    
+
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <a 
-                        href="https://linkedin.com/in/muhammed-rashid-v" 
-                        target="_blank" 
+                      <a
+                        href="https://linkedin.com/in/muhammed-rashid-v"
+                        target="_blank"
                         rel="noopener noreferrer"
                       >
                         <Button size="lg" className="w-full sm:w-auto">
@@ -253,7 +253,7 @@ const About = () => {
                       </Link>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       {stats.map((stat, index) => (
@@ -311,8 +311,8 @@ const About = () => {
                   </div>
                   <h2 className="text-3xl font-bold">Our Mission</h2>
                   <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                    To provide free, privacy-first tools that empower people to create 
-                    professional documents without compromising their data or freedom. 
+                    To provide free, privacy-first tools that empower people to create
+                    professional documents without compromising their data or freedom.
                     We believe everyone deserves access to quality tools without hidden costs.
                   </p>
                 </div>
@@ -344,12 +344,12 @@ const About = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground mb-4">
-                    BuildMyResume is completely open source under the MIT license. 
+                    BuildMyResume is completely open source under the MIT license.
                     You can view, modify, and distribute the code freely.
                   </p>
-                  <a 
-                    href="https://github.com/rashidrashiii/BuildMyResume" 
-                    target="_blank" 
+                  <a
+                    href="https://github.com/rashidrashiii/BuildMyResume"
+                    target="_blank"
                     rel="noopener noreferrer"
                   >
                     <Button variant="outline" className="w-full">
@@ -374,12 +374,12 @@ const About = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground mb-4">
-                    We welcome contributions from the community. Whether it's bug fixes, 
+                    We welcome contributions from the community. Whether it's bug fixes,
                     new features, or documentation improvements.
                   </p>
-                  <a 
-                    href="https://github.com/rashidrashiii/BuildMyResume" 
-                    target="_blank" 
+                  <a
+                    href="https://github.com/rashidrashiii/BuildMyResume"
+                    target="_blank"
                     rel="noopener noreferrer"
                   >
                     <Button variant="outline" className="w-full">

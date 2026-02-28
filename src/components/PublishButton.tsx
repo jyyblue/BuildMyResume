@@ -189,7 +189,7 @@ export const PublishButton = ({ resumeData, existingId, onPublished, keyProp, re
 
       {/* Rate Limit Warning Dialog */}
       <Dialog open={showRateLimitWarning} onOpenChange={setShowRateLimitWarning}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto rounded-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
@@ -226,7 +226,7 @@ export const PublishButton = ({ resumeData, existingId, onPublished, keyProp, re
 
       {/* Confirmation Dialog */}
       <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto rounded-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
@@ -276,7 +276,7 @@ export const PublishButton = ({ resumeData, existingId, onPublished, keyProp, re
 
       {/* Share Link Dialog */}
       <Dialog open={showShareLink} onOpenChange={setShowShareLink}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto rounded-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <LinkIcon className="h-5 w-5" />
