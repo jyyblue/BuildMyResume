@@ -1,12 +1,15 @@
 {
   "version": 2,
-  "buildCommand": "pnpm run build",
-  "installCommand": "pnpm install",
-  "functions": {
-    "dist/main.js": {
-      "runtime": "@vercel/node"
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/node",
+      "config": {
+        "buildCommand": "pnpm run build",
+        "outputDirectory": "dist"
+      }
     }
-  },
+  ],
   "routes": [
     {
       "src": "/(.*)",
