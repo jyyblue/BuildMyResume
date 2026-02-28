@@ -31,8 +31,11 @@ async function bootstrap() {
       'https://www.buildmyresume.live',
       process.env.FRONTEND_URL,
     ].filter(Boolean) as string[],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type,Authorization,Accept',
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   // Global validation pipe for DTOs
