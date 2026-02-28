@@ -1,13 +1,11 @@
 {
     "version": 2,
-    "buildCommand": "pnpm run build",
-    "outputDirectory": ".",
-    "functions": {
-        "dist/main.js": {
-            "maxDuration": 30,
-            "includeFiles": "dist/**"
+    "builds": [
+        {
+            "src": "dist/main.js",
+            "use": "@vercel/node"
         }
-    },
+    ],
     "routes": [
         {
             "src": "/(.*)",
