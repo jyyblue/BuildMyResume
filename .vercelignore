@@ -1,0 +1,3 @@
+# Exclude the NestJS API from the frontend deployment
+# The API is deployed as a separate Vercel project
+api
