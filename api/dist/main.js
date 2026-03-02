@@ -63,7 +63,7 @@ function _interop_require_wildcard(obj, nodeInterop) {
     }
     return newObj;
 }
-const server = _express();
+const server = (0, _express.default)();
 async function bootstrap() {
     const app = await _core.NestFactory.create(_appmodule.AppModule, new _platformexpress.ExpressAdapter(server));
     const logger = new _common.Logger('Bootstrap');

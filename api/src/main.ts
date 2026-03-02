@@ -6,7 +6,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { json, urlencoded } from 'express';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import * as express from 'express';
+import express from 'express';
 
 const server = express();
 
