@@ -257,7 +257,6 @@ const AIBuilder = () => {
                         if (session.createdAt) sessionCreatedAtRef.current = session.createdAt;
                         sessionTitleRef.current = (session.title && session.title !== 'New Chat') ? session.title : null;
                         setActiveId(id);
-                        console.log('[AIBuilder] Session restored:', id);
                     } else {
                         // Stored ID but no session — start fresh
                         id = null;
@@ -413,7 +412,7 @@ const AIBuilder = () => {
         try {
             // @ts-ignore
             if (window.puter?.auth?.isSignedIn()) {
-                console.log('[AIBuilder] Puter user already signed in');
+                // Already signed in
             }
         } catch { /* ignore */ }
     }, []);
@@ -759,24 +758,19 @@ const AIBuilder = () => {
             };
 
             try {
-                console.log('[AI Debug] responseText:', responseText.substring(0, 200));
                 let parsed: any;
                 try {
                     parsed = JSON.parse(responseText);
                 } catch {
                     // Try repairing malformed JSON
-                    console.log('[AI Debug] Attempting JSON repair...');
                     const repaired = repairJSON(responseText);
                     parsed = JSON.parse(repaired);
-                    console.log('[AI Debug] JSON repair succeeded!');
                 }
-                console.log('[AI Debug] parsed keys:', Object.keys(parsed));
                 if (parsed.message) {
                     aiContent = parsed.message;
                 }
 
                 if (parsed.patch) {
-                    console.log('[AI Debug] PATCH mode, keys:', Object.keys(parsed.patch));
                     // Delta/patch mode — apply only changed fields
                     const patched = applyPatch(resumeData, parsed.patch);
                     ensureIds(patched);
@@ -789,10 +783,8 @@ const AIBuilder = () => {
                     // Validate that parsed.data is actually a resume (has content.personalInfo)
                     if (!parsed.data.content || !parsed.data.content.personalInfo) {
                         // Advisory/conversational response — don't update resume data
-                        console.log('[AI Debug] Advisory response detected (data has no content.personalInfo), skipping resume update');
                         if (!aiContent) aiContent = parsed.message || "Here are some suggestions for your resume.";
                     } else {
-                        console.log('[AI Debug] FULL DATA mode, content keys:', Object.keys(parsed.data.content || {}));
                         // Full data mode — first generation or full replacement
                         const newData = parsed.data as AIResumeData;
                         ensureIds(newData);
@@ -810,7 +802,6 @@ const AIBuilder = () => {
                         };
                         newData.selectedTemplate = 'universal';
                         newData.sectionOrder = newData.sectionOrder || ['summary', 'experience', 'education', 'skills', 'certifications', 'languages', 'custom'];
-                        console.log('[AI Debug] Setting resumeData:', JSON.stringify(newData).substring(0, 300));
                         setResumeData(newData);
                         setHasGenerated(true);
                         if (!aiContent) aiContent = "I've built your resume!";
@@ -822,8 +813,6 @@ const AIBuilder = () => {
                     newData.selectedTemplate = 'universal';
                     setResumeData(newData);
                     if (!aiContent) aiContent = "I've updated your resume.";
-                } else {
-                    console.log('[AI Debug] No matching format found! parsed has:', Object.keys(parsed));
                 }
             } catch (e) {
                 console.error('[AI Debug] JSON parse failed:', e);

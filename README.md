@@ -151,6 +151,8 @@ Example:
 # Application API
 VITE_API_URL=http://localhost:4000
 VITE_SHARED_SECRET=your-shared-secret
+# Set to 'true' to enable AES encryption for AI Builder payloads (Must also set ENABLE_ENCRYPTION=true on the backend)
+VITE_ENABLE_ENCRYPTION=false
 
 # Supabase
 VITE_SUPABASE_URL=https://your-supabase-url

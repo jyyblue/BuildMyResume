@@ -104,7 +104,7 @@ async function bootstrap() {
 if (process.env.NODE_ENV !== 'production') {
     bootstrap().then((srv)=>{
         srv.listen(process.env.PORT || 4000, ()=>{
-            console.log(`🚀 Running on port ${process.env.PORT || 4000}`);
+            _common.Logger.log(`🚀 Running on port ${process.env.PORT || 4000}`, 'Bootstrap');
         });
     });
 }
