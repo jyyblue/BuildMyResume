@@ -172,6 +172,7 @@ let AiService = class AiService {
     }
     /**
      * Extract and sanitize text from an uploaded PDF file.
+     * Uses `unpdf` — a pure JS, serverless-native PDF parser with zero DOM dependencies.
      */ async extractPdfText(file) {
         // 1. Basic validation
         if (file.mimetype !== 'application/pdf') {
@@ -181,37 +182,20 @@ let AiService = class AiService {
             throw new _common.HttpException('File too large. Maximum size is 10MB.', _common.HttpStatus.BAD_REQUEST);
         }
         try {
-            // Import legacy build for Node.js environment to avoid DOMMatrix/Canvas errors.
-            // We use `new Function` to create a real ES dynamic import() that SWC won't
-            // transform into require(). CJS require() can't load .mjs ES Modules, but
-            // dynamic import() can. The includeFiles in vercel.json ensures the files are bundled.
-            const dynamicImport = new Function('specifier', 'return import(specifier)');
-            const pdfjsLib = await dynamicImport('pdfjs-dist/legacy/build/pdf.mjs');
-            // Parse PDF from buffer
-            const loadingTask = pdfjsLib.getDocument({
-                data: new Uint8Array(file.buffer),
-                useSystemFonts: true,
-                disableFontFace: true
-            });
-            const pdf = await loadingTask.promise;
+            const { extractText, getDocumentProxy } = await Function('return import("unpdf")')();
+            const pdf = await getDocumentProxy(new Uint8Array(file.buffer));
             if (pdf.numPages > 30) {
                 throw new _common.HttpException('PDF has too many pages. Maximum is 30.', _common.HttpStatus.BAD_REQUEST);
             }
-            const pages = [];
-            for(let i = 1; i <= pdf.numPages; i++){
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map((item)=>item.str || '').join(' ');
-                pages.push(pageText);
-            }
-            // Cleanup
-            await pdf.destroy();
-            const rawText = pages.join('\n\n');
+            const { totalPages, text: rawText } = await extractText(pdf, {
+                mergePages: true
+            });
+            await pdf.cleanup();
             const sanitized = this.sanitizeExtractedText(rawText);
             const truncated = sanitized.length >= 15000;
             const result = {
                 text: sanitized,
-                pageCount: pdf.numPages,
+                pageCount: totalPages,
                 truncated
             };
             if (isEncryptionEnabled()) {
