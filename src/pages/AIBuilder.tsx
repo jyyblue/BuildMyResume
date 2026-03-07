@@ -927,7 +927,7 @@ const AIBuilder = () => {
     });
 
     return (
-        <div className="flex flex-col h-screen bg-background">
+        <div className="flex flex-col h-[100dvh] bg-background overflow-hidden">
             <AppNavigation />
 
             <div className="flex flex-1 overflow-hidden relative">

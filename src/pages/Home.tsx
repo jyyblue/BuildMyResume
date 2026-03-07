@@ -108,24 +108,24 @@ const Home = () => {
                 Open Source Resume Builder
               </div>
 
-              <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-tight max-w-5xl mx-auto">
+              <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-tight max-w-5xl mx-auto">
                 Modern Resumes, <br className="hidden md:block" />
                 <span className="text-gradient">Built Your Way.</span>
               </h1>
 
-              <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
                 Generate a tailored resume through an interactive chat, or take full control with our pixel-perfect live editor. Always free, private, and open-source.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center pt-8">
+              <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center items-center pt-8">
                 <Link to="/ai-resume-builder" className="w-full sm:w-auto group">
-                  <Button size="xl" className="w-full sm:w-auto rounded-full shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:shadow-[0_0_40px_rgba(59,130,246,0.6)] transition-all duration-500 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border-none">
+                  <Button size="lg" className="h-14 px-8 md:h-16 md:px-10 text-base md:text-lg w-full sm:w-auto rounded-full shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:shadow-[0_0_40px_rgba(59,130,246,0.6)] transition-all duration-500 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border-none">
                     <Sparkles className="mr-2 h-5 w-5 animate-pulse" />
                     Try AI Builder
                   </Button>
                 </Link>
                 <Link to="/editor" className="w-full sm:w-auto group">
-                  <Button variant="outline" size="xl" className="w-full sm:w-auto rounded-full border-2 border-primary/20 hover:border-primary/50 bg-background/50 backdrop-blur-sm transition-all duration-300">
+                  <Button variant="outline" size="lg" className="h-14 px-8 md:h-16 md:px-10 text-base md:text-lg w-full sm:w-auto rounded-full border-2 border-primary/20 hover:border-primary/50 bg-background/50 backdrop-blur-sm transition-all duration-300">
                     <Edit3 className="mr-2 h-5 w-5" />
                     Use Classic Editor
                   </Button>
