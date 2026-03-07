@@ -181,10 +181,12 @@ let AiService = class AiService {
             throw new _common.HttpException('File too large. Maximum size is 10MB.', _common.HttpStatus.BAD_REQUEST);
         }
         try {
-            // Import legacy build for Node.js environment to avoid DOMMatrix/Canvas errors
-            // Use a string literal so Vercel's nft (Node File Tracing) can detect and bundle the dependency
-            // @ts-ignore — suppress TS module resolution for this deep path
-            const pdfjsLib = await Promise.resolve().then(()=>/*#__PURE__*/ _interop_require_wildcard(require("pdfjs-dist/legacy/build/pdf.mjs")));
+            // Import legacy build for Node.js environment to avoid DOMMatrix/Canvas errors.
+            // We use `new Function` to create a real ES dynamic import() that SWC won't
+            // transform into require(). CJS require() can't load .mjs ES Modules, but
+            // dynamic import() can. The includeFiles in vercel.json ensures the files are bundled.
+            const dynamicImport = new Function('specifier', 'return import(specifier)');
+            const pdfjsLib = await dynamicImport('pdfjs-dist/legacy/build/pdf.mjs');
             // Parse PDF from buffer
             const loadingTask = pdfjsLib.getDocument({
                 data: new Uint8Array(file.buffer),
