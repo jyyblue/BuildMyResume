@@ -30,6 +30,7 @@ export function renderSection({
     onEdit,
 }: SectionRendererProps): React.ReactNode {
     const content = data.content;
+    if (!content) return null;
 
     // Helper to completely remove a section's data and order
     const getDeleteHandler = (field: string, idToRemove: string, emptyVal: any) => () => {

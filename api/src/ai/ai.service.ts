@@ -174,9 +174,9 @@ export class AiService {
 
         try {
             // Import legacy build for Node.js environment to avoid DOMMatrix/Canvas errors
-            // Hide the import string from TypeScript compiler to avoid the infinite looping during `nest start` / `tsc` 
-            const modulePath = 'pdfjs-dist/legacy/build/pdf.mjs';
-            const pdfjsLib = await import(modulePath);
+            // Use a string literal so Vercel's nft (Node File Tracing) can detect and bundle the dependency
+            // @ts-ignore — suppress TS module resolution for this deep path
+            const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
 
             // Parse PDF from buffer
             const loadingTask = pdfjsLib.getDocument({

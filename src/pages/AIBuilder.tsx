@@ -66,6 +66,80 @@ const createEmptyAIResume = (): AIResumeData => ({
     selectedTemplate: 'universal',
 });
 
+/**
+ * Lightweight inline markdown renderer for AI chat messages.
+ * Supports: **bold**, *italic*, numbered lists, bullet lists, and line breaks.
+ */
+function renderMarkdown(text: string): React.ReactNode {
+    const lines = text.split('\n');
+    const elements: React.ReactNode[] = [];
+    let listItems: { content: string; ordered: boolean; index: number }[] = [];
+
+    const flushList = () => {
+        if (listItems.length === 0) return;
+        const isOrdered = listItems[0].ordered;
+        const Tag = isOrdered ? 'ol' : 'ul';
+        elements.push(
+            <Tag key={`list-${elements.length}`} className={`${isOrdered ? 'list-decimal' : 'list-disc'} pl-5 my-1.5 space-y-1`}>
+                {listItems.map((item, i) => (
+                    <li key={i}>{formatInline(item.content)}</li>
+                ))}
+            </Tag>
+        );
+        listItems = [];
+    };
+
+    // Format inline markdown: **bold** and *italic*
+    const formatInline = (str: string): React.ReactNode => {
+        const parts: React.ReactNode[] = [];
+        const regex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
+        let lastIndex = 0;
+        let match: RegExpExecArray | null;
+
+        while ((match = regex.exec(str)) !== null) {
+            if (match.index > lastIndex) {
+                parts.push(str.slice(lastIndex, match.index));
+            }
+            if (match[2]) {
+                // **bold**
+                parts.push(<strong key={match.index} className="font-semibold">{match[2]}</strong>);
+            } else if (match[3]) {
+                // *italic*
+                parts.push(<em key={match.index}>{match[3]}</em>);
+            }
+            lastIndex = regex.lastIndex;
+        }
+        if (lastIndex < str.length) {
+            parts.push(str.slice(lastIndex));
+        }
+        return parts.length === 1 ? parts[0] : <>{parts}</>;
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        // Numbered list: "1. text" or "1) text"
+        const orderedMatch = line.match(/^\s*(\d+)[.)]\s+(.+)/);
+        // Bullet list: "- text" or "• text"
+        const bulletMatch = line.match(/^\s*[-•]\s+(.+)/);
+
+        if (orderedMatch) {
+            listItems.push({ content: orderedMatch[2], ordered: true, index: parseInt(orderedMatch[1]) });
+        } else if (bulletMatch) {
+            listItems.push({ content: bulletMatch[1], ordered: false, index: 0 });
+        } else {
+            flushList();
+            if (line.trim() === '') {
+                elements.push(<div key={`br-${i}`} className="h-2" />);
+            } else {
+                elements.push(<p key={`p-${i}`} className="my-0.5">{formatInline(line)}</p>);
+            }
+        }
+    }
+    flushList();
+
+    return <div className="space-y-0.5">{elements}</div>;
+}
+
 const WELCOME_MESSAGE: Message = {
     id: '1',
     role: 'assistant',
@@ -564,6 +638,7 @@ const AIBuilder = () => {
 
         setMessages(prev => [...prev, userMessage]);
         setInput("");
+        setAttachedPdf(null);
         setIsLoading(true);
         setIsThinking(true);
         pendingApiRef.current = true;
@@ -711,28 +786,35 @@ const AIBuilder = () => {
                     setResumeData(patched);
                     if (!aiContent) aiContent = "I've updated your resume.";
                 } else if (parsed.data) {
-                    console.log('[AI Debug] FULL DATA mode, content keys:', Object.keys(parsed.data.content || {}));
-                    // Full data mode — first generation or full replacement
-                    const newData = parsed.data as AIResumeData;
-                    ensureIds(newData);
-                    newData.meta = {
-                        layout: 'single-column',
-                        designPreset: 'modern',
-                        headerStyle: 'centered',
-                        skillDisplay: 'tags',
-                        primaryColor: '#2563eb',
-                        accentColor: '#64748b',
-                        fontFamily: 'inter',
-                        showIcons: true,
-                        showDividers: true,
-                        ...newData.meta,
-                    };
-                    newData.selectedTemplate = 'universal';
-                    newData.sectionOrder = newData.sectionOrder || ['summary', 'experience', 'education', 'skills', 'certifications', 'languages', 'custom'];
-                    console.log('[AI Debug] Setting resumeData:', JSON.stringify(newData).substring(0, 300));
-                    setResumeData(newData);
-                    setHasGenerated(true);
-                    if (!aiContent) aiContent = "I've built your resume!";
+                    // Validate that parsed.data is actually a resume (has content.personalInfo)
+                    if (!parsed.data.content || !parsed.data.content.personalInfo) {
+                        // Advisory/conversational response — don't update resume data
+                        console.log('[AI Debug] Advisory response detected (data has no content.personalInfo), skipping resume update');
+                        if (!aiContent) aiContent = parsed.message || "Here are some suggestions for your resume.";
+                    } else {
+                        console.log('[AI Debug] FULL DATA mode, content keys:', Object.keys(parsed.data.content || {}));
+                        // Full data mode — first generation or full replacement
+                        const newData = parsed.data as AIResumeData;
+                        ensureIds(newData);
+                        newData.meta = {
+                            layout: 'single-column',
+                            designPreset: 'modern',
+                            headerStyle: 'centered',
+                            skillDisplay: 'tags',
+                            primaryColor: '#2563eb',
+                            accentColor: '#64748b',
+                            fontFamily: 'inter',
+                            showIcons: true,
+                            showDividers: true,
+                            ...newData.meta,
+                        };
+                        newData.selectedTemplate = 'universal';
+                        newData.sectionOrder = newData.sectionOrder || ['summary', 'experience', 'education', 'skills', 'certifications', 'languages', 'custom'];
+                        console.log('[AI Debug] Setting resumeData:', JSON.stringify(newData).substring(0, 300));
+                        setResumeData(newData);
+                        setHasGenerated(true);
+                        if (!aiContent) aiContent = "I've built your resume!";
+                    }
                 } else if (parsed.content && parsed.meta) {
                     // Fallback: raw resume object without wrapper
                     const newData = parsed as AIResumeData;
@@ -988,7 +1070,9 @@ const AIBuilder = () => {
                                                         </div>
                                                     )}
                                                     {displayContent && (
-                                                        <div className="whitespace-pre-wrap">{displayContent}</div>
+                                                        <div className={message.role === 'user' ? 'whitespace-pre-wrap' : ''}>
+                                                            {message.role === 'assistant' ? renderMarkdown(displayContent) : displayContent}
+                                                        </div>
                                                     )}
                                                 </div>
                                                 <span className="text-[10px] text-gray-400 mt-1 px-1">
