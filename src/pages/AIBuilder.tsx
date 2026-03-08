@@ -20,6 +20,7 @@ import { validatePdfFile, extractTextFromPDF, wrapForPrompt } from "@/utils/pdfE
 import { PreviewEmptyState } from "@/components/ai-builder/PreviewEmptyState";
 import { PreviewLoadingState } from "@/components/ai-builder/PreviewLoadingState";
 import { PuterAuthModal } from "@/components/ai-builder/PuterAuthModal";
+import ResumeCounterService from "@/services/resumeCounter";
 
 interface Message {
     id: string;
@@ -916,9 +917,16 @@ const AIBuilder = () => {
             setIsLoading(true);
             return new Promise((resolve) => setTimeout(resolve, 100));
         },
-        onAfterPrint: () => {
+        onAfterPrint: async () => {
             setIsLoading(false);
             toast({ title: "PDF Exported!", description: "Your resume has been saved successfully." });
+            try {
+                // Use the active session ID, or a stable fallback, for deduping increments
+                const resumeIdForCounter = activeSessionId || 'ai-session-' + Date.now();
+                await ResumeCounterService.incrementForResume(resumeIdForCounter);
+            } catch (err) {
+                console.warn('Failed to increment resume counter:', err);
+            }
         },
         onPrintError: (error) => {
             setIsLoading(false);

@@ -114,7 +114,7 @@ const Home = () => {
               </h1>
 
               <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                Generate a tailored resume through an interactive chat, or take full control with our pixel-perfect live editor. Always free, private, and open-source.
+                Create a professional, ATS-friendly resume in minutes. Build it yourself with our intuitive form editor, or chat with our AI assistant to have it built for you. Always free, private, and ready to download.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center items-center pt-8">

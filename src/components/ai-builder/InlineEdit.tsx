@@ -75,9 +75,9 @@ export function InlineEdit({
         <Element
             ref={ref}
             className={`${className} cursor-text outline-none transition-all duration-150 ${isEditing
-                    ? 'ring-2 ring-blue-400 ring-offset-1 rounded-sm bg-blue-50/30'
-                    : 'hover:bg-blue-50/20 hover:ring-1 hover:ring-blue-200 rounded-sm'
-                } ${isEmpty && !isEditing ? 'text-gray-300 italic' : ''}`}
+                ? 'ring-2 ring-blue-400 ring-offset-1 rounded-sm bg-blue-50/30'
+                : 'hover:bg-blue-50/20 hover:ring-1 hover:ring-blue-200 rounded-sm'
+                } ${isEmpty && !isEditing ? 'text-gray-300 italic print:hidden' : ''}`}
             style={{
                 ...style,
                 minWidth: '2rem',
