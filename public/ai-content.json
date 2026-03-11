@@ -136,6 +136,11 @@
         "url": "/terms",
         "purpose": "Terms of service and usage",
         "key_content": "Usage terms, limitations, legal information"
+      },
+      "aiBuilder": {
+        "url": "/ai-resume-builder",
+        "purpose": "Conversational AI-driven resume creation interface",
+        "key_content": "Generate resumes via chat, import PDFs, edit visually, and export professional ATS-friendly documents."
       }
     },
     "faq": {

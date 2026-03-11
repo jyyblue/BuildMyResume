@@ -130,6 +130,7 @@ BuildMyResume has been optimized for search engines with the following key impro
 - **Homepage**: Focus on "free resume builder" and "ATS-friendly"
 - **Templates**: Template-specific keywords and descriptions
 - **Editor**: Action-oriented content for resume creation
+- **AI Resume Builder**: Emphasize conversational AI, generate resume automatically, keywords like "AI resume builder", "chat resume generator" and "AI-powered CV".
 
 ## 🔧 SEO Utilities (`src/utils/seo.ts`)
 

@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ResumeSchema, createEmptyResume, generateId } from "@/types/resume";
 import { useReactToPrint } from "react-to-print";
 import { AppNavigation } from "@/components/AppNavigation";
+import SEO from "@/components/SEO";
 import UniversalRenderer from "@/components/ai-builder/UniversalRenderer";
 import type { AIResumeData, OnEditFn } from "@/components/ai-builder/types";
 import {
@@ -935,7 +936,15 @@ const AIBuilder = () => {
     });
 
     return (
-        <div className="flex flex-col h-[100dvh] bg-background overflow-hidden">
+        <>
+          <SEO
+            title="AI Resume Builder – BuildMyResume"
+            description="Chat with our intelligent assistant to automatically generate a professional, ATS‑friendly resume. Import existing PDFs, edit visually, and export to PDF or JSON. Free, private, and open source."
+            keywords="ai resume builder, conversational resume, generate resume, ai-powered resume, buildmyresume.ai"
+            url={`${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/ai-resume-builder`}
+            image={`${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}/og-image.png`}
+          />
+          <div className="flex flex-col h-[100dvh] bg-background overflow-hidden">
             <AppNavigation />
 
             <div className="flex flex-1 overflow-hidden relative">
@@ -1294,6 +1303,7 @@ const AIBuilder = () => {
                 onConnect={handleAuthConnect}
             />
         </div>
+        </>
     );
 };
 
