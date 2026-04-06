@@ -75,7 +75,7 @@ const Home = () => {
   return (
     <>
       <SEO
-        title="Open Source Resume Builder - AI & Classic Editor"
+        title="Resume Builder - AI & Classic Editor"
         description="Build professional, ATS-friendly resumes with our privacy-first builder. Choose between our conversational AI assistant or granular classic editor. 100% free and open source."
         keywords="resume builder, resume builder in buildmyresume.live, open source resume builder, ATS friendly resume, professional resume templates, CV builder, AI resume builder, conversational resume, privacy resume builder"
         url={`${import.meta.env.VITE_BASE_URL || 'https://buildmyresume.live'}`}
