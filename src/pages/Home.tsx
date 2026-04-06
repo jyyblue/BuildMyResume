@@ -109,7 +109,7 @@ const Home = () => {
               </div>
 
               <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-tight max-w-5xl mx-auto">
-                Modern Resumes, <br className="hidden md:block" />
+                Modern Resume, <br className="hidden md:block" />
                 <span className="text-gradient">Built Your Way.</span>
               </h1>
 
