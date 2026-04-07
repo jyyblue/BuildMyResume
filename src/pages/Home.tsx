@@ -33,7 +33,7 @@ const Home = () => {
   const features = [
     {
       icon: <MessageSquare className="h-6 w-6 text-blue-500" />,
-      title: "Conversational AI",
+      title: "Conversational AI us",
       description: "Chat with our intelligent assistant to build your resume naturally, section by section.",
       className: "md:col-span-2 lg:col-span-1"
     },
