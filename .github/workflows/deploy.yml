@@ -1,0 +1,35 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd ${{ secrets.APP_PATH }}
+            git pull origin main
+            
+            # Setup Backend (NestJS)
+            cd api
+            npm install
+            npm run build
+            
+            # Setup Frontend (React/Vite)
+            cd ..
+            npm install
+            npm run build
+            
+            # Restart Services (assuming you use PM2)
+            pm2 restart all || pm2 start api/dist/main.js --name "backend"
